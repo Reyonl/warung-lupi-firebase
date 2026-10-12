@@ -15,5 +15,24 @@
       "port": 4000
     },
     "singleProjectMode": true
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "warunglupi-staging-fa841",
+          "appId": "1:408892994802:android:f6edb91f8bd0432ac80c6b",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "warunglupi-staging-fa841",
+          "configurations": {
+            "android": "1:408892994802:android:f6edb91f8bd0432ac80c6b"
+          }
+        }
+      }
+    }
   }
 }
