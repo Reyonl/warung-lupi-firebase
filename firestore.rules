@@ -2,8 +2,127 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Rules awal Fase 2: menolak semua akses.
-    // Rules final dengan validasi skema dan auth anonim ditulis di Fase 7.
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isNonEmptyString(text, maxLen) {
+      return text is string && text.size() > 0 && text.size() <= maxLen;
+    }
+
+    function isValidDateString(d) {
+      return d is string && d.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    function isValidInvoiceNumber(n) {
+      return n is string && (
+        n.matches('^INV-\\d{8}-\\d{3,}$') ||
+        n.matches('^DRAFT-\\d{8}-[a-zA-Z0-9_-]+$')
+      );
+    }
+
+    // 1. Pelanggan (customers)
+    match /customers/{customerId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+        && isNonEmptyString(request.resource.data.name, 100)
+        && request.resource.data.isActive is bool;
+      allow delete: if isAuthenticated();
+    }
+
+    // 2. Kategori (categories)
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+        && isNonEmptyString(request.resource.data.name, 100);
+      allow delete: if isAuthenticated();
+    }
+
+    // 3. Produk (products)
+    match /products/{productId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+        && isNonEmptyString(request.resource.data.name, 100)
+        && request.resource.data.defaultPrice is int
+        && request.resource.data.defaultPrice >= 0
+        && request.resource.data.isActive is bool;
+      allow delete: if isAuthenticated();
+    }
+
+    // 4. Transaksi & Bon (transactions)
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+        && isValidInvoiceNumber(request.resource.data.number)
+        && isValidDateString(request.resource.data.date)
+        && request.resource.data.totalAmount is int
+        && request.resource.data.status in ['draft', 'completed', 'canceled']
+        && request.resource.data.paymentStatus in ['unpaid', 'paid'];
+      allow delete: if isAuthenticated();
+
+      // Subkoleksi Items Bon
+      match /items/{itemId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isAuthenticated()
+          && isNonEmptyString(request.resource.data.productName, 150)
+          && request.resource.data.quantity is int
+          && request.resource.data.unitPrice is int
+          && request.resource.data.subtotal is int;
+        allow delete: if isAuthenticated();
+      }
+    }
+
+    // Collection Group Items (untuk query per-item seperti updateItem / deleteItem)
+    match /{path=**}/items/{itemId} {
+      allow read: if isAuthenticated();
+    }
+
+    // 5. Pengeluaran (expenses)
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && isValidDateString(request.resource.data.date)
+        && isNonEmptyString(request.resource.data.title, 150)
+        && request.resource.data.amount is int
+        && request.resource.data.amount >= 0
+        && request.resource.data.source in ['manual', 'bon'];
+      // Pengeluaran bon tidak boleh diedit manual secara langsung
+      allow update: if isAuthenticated()
+        && isValidDateString(request.resource.data.date)
+        && isNonEmptyString(request.resource.data.title, 150)
+        && request.resource.data.amount is int
+        && request.resource.data.amount >= 0
+        && resource.data.source == 'manual'
+        && request.resource.data.source == 'manual';
+      allow delete: if isAuthenticated();
+    }
+
+    // 6. Ringkasan Harian (daily_summary)
+    match /daily_summary/{dateId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+        && isValidDateString(request.resource.data.date)
+        && request.resource.data.saleCount is int
+        && request.resource.data.saleTotal is int
+        && request.resource.data.paidTotal is int
+        && request.resource.data.unpaidTotal is int
+        && request.resource.data.expenseCount is int
+        && request.resource.data.expenseTotal is int;
+      allow delete: if isAuthenticated();
+    }
+
+    // 7. Counter Penomoran Bon (counters)
+    match /counters/{counterId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+        && request.resource.data.currentSequence is int
+        && request.resource.data.currentSequence >= 0;
+      allow delete: if isAuthenticated();
+    }
+
+    // Tolak semua koleksi lain yang tidak terdefinisi
     match /{document=**} {
       allow read, write: if false;
     }

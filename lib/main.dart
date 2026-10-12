@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -18,7 +19,7 @@ Future<void> main() async {
   // Inisialisasi feature flags untuk peralihan runtime/compile-time
   await FeatureFlags.init();
 
-  // Inisialisasi Firebase jika flag Firestore aktif
+  // Inisialisasi Firebase & Anonymous Auth jika flag Firestore aktif
   if (FeatureFlags.useFirestoreCustomers ||
       FeatureFlags.useFirestoreCategories ||
       FeatureFlags.useFirestoreProducts ||
@@ -30,6 +31,9 @@ Future<void> main() async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      }
     } catch (_) {}
   }
 
