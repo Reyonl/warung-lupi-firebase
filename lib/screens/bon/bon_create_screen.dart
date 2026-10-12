@@ -314,14 +314,6 @@ class _BonCreateScreenState extends State<BonCreateScreen> {
   Future<void> _finalizeBon() async {
     if (_savingBon) return; // cegah double-submit → bon duplikat
     final prov = context.read<BonDraftProvider>();
-    // Validasi: total tidak boleh negatif (potongan melebihi nilai item).
-    if (prov.items.isNotEmpty && prov.totalAmount < 0) {
-      setState(
-        () => _error =
-            'Total belanja tidak boleh negatif. Periksa potongan Anda.',
-      );
-      return;
-    }
     setState(() {
       _savingBon = true;
       _error = null;
