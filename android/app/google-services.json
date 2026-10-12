@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "408892994802",
+    "project_id": "warunglupi-staging-fa841",
+    "storage_bucket": "warunglupi-staging-fa841.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408892994802:android:f6edb91f8bd0432ac80c6b",
+        "android_client_info": {
+          "package_name": "com.warunglupi.rekapan_warung"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlViJLEEtem32nJ_lupYxRqW6zwd2Xmlw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
