@@ -46,3 +46,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Firebase migration & credentials (Rule 4)
+backups/
+*.sql
+*.csv
+tools/migrate/.env
+tools/migrate/*service-account*.json
+android/key.properties
+android/local.properties
