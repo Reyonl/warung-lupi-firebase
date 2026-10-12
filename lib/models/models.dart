@@ -18,6 +18,35 @@ int numFrom(dynamic v, {int fallback = 0}) {
 /// Varian nullable dari [numFrom] — null tetap null (untuk kolom opsional).
 int? numFromOrNull(dynamic v) => v == null ? null : numFrom(v);
 
+/// Helper untuk mengekstrak atau menghasilkan numeric ID unik stabil untuk Firestore documents.
+int parseEntityId(String docId, Map<String, dynamic> doc) {
+  int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
+  if (parsedId > 0) return parsedId;
+
+  for (final p in ['legacy_', 'tx_', 'cust_', 'prod_', 'cat_', 'item_', 'exp_']) {
+    if (docId.startsWith(p)) {
+      final val = int.tryParse(docId.substring(p.length)) ?? 0;
+      if (val > 0) return val;
+    }
+  }
+
+  final direct = int.tryParse(docId) ?? 0;
+  if (direct > 0) return direct;
+
+  final inv = (doc['number'] ?? doc['transaction_number'] ?? '').toString();
+  final match = RegExp(r'INV-(\d{8})-(\d+)').firstMatch(inv);
+  if (match != null) {
+    final val = int.tryParse('${match.group(1)}${match.group(2)}') ?? 0;
+    if (val > 0) return val;
+  }
+
+  int hash = 0;
+  for (int i = 0; i < docId.length; i++) {
+    hash = (31 * hash + docId.codeUnitAt(i)) & 0x7FFFFFFF;
+  }
+  return hash > 0 ? hash : 1;
+}
+
 /// Model Kategori — mirror tabel `categories`.
 class Category {
   final int id;
@@ -58,12 +87,8 @@ class Category {
   };
 
   factory Category.fromDocument(String docId, Map<String, dynamic> doc) {
-    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
-    if (parsedId == 0 && docId.startsWith('legacy_')) {
-      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
-    }
     return Category(
-      id: parsedId,
+      id: parseEntityId(docId, doc),
       name: (doc['name'] ?? '') as String,
       productsCount: numFromOrNull(
         doc['productsCount'] ?? doc['products_count'],
@@ -128,10 +153,7 @@ class Product {
     Map<String, dynamic> doc, {
     Category? category,
   }) {
-    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
-    if (parsedId == 0 && docId.startsWith('legacy_')) {
-      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
-    }
+    final parsedId = parseEntityId(docId, doc);
     final catRaw = doc['categoryId'] ?? doc['category_id'];
     int? catId;
     if (catRaw is int) {
@@ -201,12 +223,8 @@ class Customer {
     Map<String, dynamic> doc, {
     int? transactionsCount,
   }) {
-    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
-    if (parsedId == 0 && docId.startsWith('legacy_')) {
-      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
-    }
     return Customer(
-      id: parsedId,
+      id: parseEntityId(docId, doc),
       name: (doc['name'] ?? '') as String,
       phone: doc['phone'] as String?,
       notes: doc['notes'] as String?,
@@ -287,10 +305,7 @@ class TransactionItem {
     Map<String, dynamic> doc, {
     int? transactionId,
   }) {
-    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
-    if (parsedId == 0 && docId.startsWith('legacy_')) {
-      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
-    }
+    final parsedId = parseEntityId(docId, doc);
     final prodRaw = doc['productId'] ?? doc['product_id'];
     int? prodId;
     if (prodRaw is int) {
@@ -419,10 +434,7 @@ class Transaction {
     Customer? customer,
     List<TransactionItem> items = const [],
   }) {
-    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
-    if (parsedId == 0 && docId.startsWith('legacy_')) {
-      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
-    }
+    final parsedId = parseEntityId(docId, doc);
     final custRaw = doc['customerId'] ?? doc['customer_id'];
     int? custId;
     if (custRaw is int) {
@@ -433,6 +445,26 @@ class Transaction {
     final rawDate =
         (doc['date'] ?? doc['transaction_date'] ?? '').toString();
     final dateStr = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+
+    final custName = doc['customerName'] as String?;
+    final resolvedCustomer = customer ??
+        (custName != null && custName.isNotEmpty
+            ? Customer(
+                id: custId ?? 0,
+                name: custName,
+                phone: doc['customerPhone'] as String?,
+                notes: null,
+                isActive: true,
+              )
+            : (custId != null && custId > 0
+                ? Customer(
+                    id: custId,
+                    name: 'Pelanggan #$custId',
+                    phone: null,
+                    notes: null,
+                    isActive: true,
+                  )
+                : null));
 
     return Transaction(
       id: parsedId,
@@ -446,7 +478,7 @@ class Transaction {
           (doc['paymentStatus'] ?? doc['payment_status'] ?? 'unpaid')
               as String,
       notes: doc['notes'] as String?,
-      customer: customer,
+      customer: resolvedCustomer,
       items: items,
     );
   }
@@ -481,6 +513,24 @@ class TransactionSummary {
       status: (json['status'] ?? 'draft') as String,
       paymentStatus: json['payment_status'] as String?,
       customerName: json['customer_name'] as String?,
+    );
+  }
+
+  factory TransactionSummary.fromDocument(
+    String docId,
+    Map<String, dynamic> doc, {
+    String? customerName,
+  }) {
+    return TransactionSummary(
+      id: parseEntityId(docId, doc),
+      transactionNumber:
+          (doc['number'] ?? doc['transaction_number'] ?? '') as String,
+      transactionDate:
+          (doc['date'] ?? doc['transaction_date'] ?? '').toString(),
+      totalAmount: numFrom(doc['totalAmount'] ?? doc['total_amount']),
+      status: (doc['status'] ?? 'draft') as String,
+      paymentStatus: doc['paymentStatus'] as String?,
+      customerName: customerName ?? (doc['customerName'] as String?),
     );
   }
 }
@@ -734,10 +784,7 @@ class Expense {
   };
 
   factory Expense.fromDocument(String docId, Map<String, dynamic> doc) {
-    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
-    if (parsedId == 0 && docId.startsWith('legacy_')) {
-      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
-    }
+    final parsedId = parseEntityId(docId, doc);
     final rawDate =
         (doc['date'] ?? doc['expense_date'] ?? '').toString();
     final dateStr = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;

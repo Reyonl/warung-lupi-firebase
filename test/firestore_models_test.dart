@@ -168,5 +168,42 @@ void main() {
       expect(fromDoc.amount, 100000);
       expect(fromDoc.source, 'manual');
     });
+
+    test('Transaction.fromDocument resolves customerName and non-zero ID for random Firestore IDs', () {
+      final randomDoc = {
+        'number': 'INV-20261013-001',
+        'date': '2026-10-13',
+        'customerId': 'legacy_58',
+        'customerName': 'ALI DAGING',
+        'totalAmount': 150000,
+        'status': 'draft',
+        'paymentStatus': 'unpaid',
+      };
+
+      // Kasus Firestore docId acak tanpa legacyId
+      final parsed = Transaction.fromDocument('hLG5lMsUR4L9i2UV1DJ5', randomDoc);
+      expect(parsed.id > 0, true);
+      expect(parsed.id, 20261013001); // Dari invoice number INV-20261013-001
+      expect(parsed.customer, isNotNull);
+      expect(parsed.customer?.name, 'ALI DAGING');
+      expect(parsed.transactionNumber, 'INV-20261013-001');
+    });
+
+    test('TransactionItem.fromDocument handles item_ prefix correctly', () {
+      final itemDoc = {
+        'id': 1776077589123,
+        'legacyId': 1776077589123,
+        'productName': 'Gorengan Tempe',
+        'quantity': 3,
+        'unit': 'pcs',
+        'unitPrice': 2000,
+        'subtotal': 5000,
+      };
+
+      final parsed = TransactionItem.fromDocument('item_1776077589123', itemDoc);
+      expect(parsed.id, 1776077589123);
+      expect(parsed.productName, 'Gorengan Tempe');
+      expect(parsed.subtotal, 5000);
+    });
   });
 }

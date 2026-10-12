@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 
-import '../core/config/feature_flags.dart';
 import '../models/models.dart';
 import '../providers/repositories.dart';
 import '../services/cigarette_classifier.dart';
@@ -54,13 +53,15 @@ class FirestoreCustomerRepository implements CustomerRepository {
     String? phone,
     String? notes,
   }) async {
-    final docRef = _col.doc();
+    final newId = DateTime.now().millisecondsSinceEpoch;
+    final docRef = _col.doc('cust_$newId');
     final data = {
+      'id': newId,
+      'legacyId': newId,
       'name': name.trim(),
       'phone': (phone == null || phone.isEmpty) ? null : phone.trim(),
       'notes': (notes == null || notes.isEmpty) ? null : notes.trim(),
       'isActive': true,
-      'legacyId': null,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -146,27 +147,37 @@ class FirestoreCustomerRepository implements CustomerRepository {
         .get();
 
     return txSnap.docs.map((d) {
-      final data = d.data();
-      final parsedId = numFrom(data['legacyId'] ?? data['id']);
-      return TransactionSummary(
-        id: parsedId > 0 ? parsedId : int.tryParse(d.id.replaceAll(RegExp(r'\D'), '')) ?? 0,
-        transactionNumber: (data['number'] ?? data['transaction_number'] ?? '') as String,
-        transactionDate: (data['date'] ?? data['transaction_date'] ?? '') as String,
-        totalAmount: numFrom(data['totalAmount'] ?? data['total_amount']),
-        status: (data['status'] ?? 'draft') as String,
-        paymentStatus: data['paymentStatus'] as String?,
+      return TransactionSummary.fromDocument(
+        d.id,
+        d.data(),
         customerName: custSnap.data()?['name'] as String?,
       );
     }).toList();
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _findCustomerDoc(int id) async {
+    final custRef = _col.doc('cust_$id');
+    final custSnap = await custRef.get();
+    if (custSnap.exists) return custSnap;
+
     final legacyRef = _col.doc('legacy_$id');
     final direct = await legacyRef.get();
     if (direct.exists) return direct;
 
+    final rawRef = _col.doc('$id');
+    final directRaw = await rawRef.get();
+    if (directRaw.exists) return directRaw;
+
     final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
     if (q.docs.isNotEmpty) return q.docs.first;
+
+    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
+    if (qId.docs.isNotEmpty) return qId.docs.first;
+
+    final all = await _col.limit(100).get();
+    for (final d in all.docs) {
+      if (parseEntityId(d.id, d.data()) == id) return d;
+    }
 
     return direct;
   }
@@ -194,10 +205,12 @@ class FirestoreCategoryRepository implements CategoryRepository {
 
   @override
   Future<Category> store(String name) async {
-    final docRef = _col.doc();
+    final newId = DateTime.now().millisecondsSinceEpoch;
+    final docRef = _col.doc('cat_$newId');
     final data = {
+      'id': newId,
+      'legacyId': newId,
       'name': name.trim(),
-      'legacyId': null,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -226,10 +239,29 @@ class FirestoreCategoryRepository implements CategoryRepository {
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _findCategoryDoc(int id) async {
-    final direct = await _col.doc('legacy_$id').get();
+    final catRef = _col.doc('cat_$id');
+    final catSnap = await catRef.get();
+    if (catSnap.exists) return catSnap;
+
+    final legacyRef = _col.doc('legacy_$id');
+    final direct = await legacyRef.get();
     if (direct.exists) return direct;
+
+    final rawRef = _col.doc('$id');
+    final directRaw = await rawRef.get();
+    if (directRaw.exists) return directRaw;
+
     final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
     if (q.docs.isNotEmpty) return q.docs.first;
+
+    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
+    if (qId.docs.isNotEmpty) return qId.docs.first;
+
+    final all = await _col.limit(100).get();
+    for (final d in all.docs) {
+      if (parseEntityId(d.id, d.data()) == id) return d;
+    }
+
     return direct;
   }
 }
@@ -280,14 +312,16 @@ class FirestoreProductRepository implements ProductRepository {
     required String unit,
     bool isActive = true,
   }) async {
-    final docRef = _col.doc();
+    final newId = DateTime.now().millisecondsSinceEpoch;
+    final docRef = _col.doc('prod_$newId');
     final data = {
+      'id': newId,
+      'legacyId': newId,
       'categoryId': 'legacy_$categoryId',
       'name': name.trim(),
       'defaultPrice': defaultPrice,
       'unit': unit.trim(),
       'isActive': isActive,
-      'legacyId': null,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -328,10 +362,29 @@ class FirestoreProductRepository implements ProductRepository {
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _findProductDoc(int id) async {
-    final direct = await _col.doc('legacy_$id').get();
+    final prodRef = _col.doc('prod_$id');
+    final prodSnap = await prodRef.get();
+    if (prodSnap.exists) return prodSnap;
+
+    final legacyRef = _col.doc('legacy_$id');
+    final direct = await legacyRef.get();
     if (direct.exists) return direct;
+
+    final rawRef = _col.doc('$id');
+    final directRaw = await rawRef.get();
+    if (directRaw.exists) return directRaw;
+
     final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
     if (q.docs.isNotEmpty) return q.docs.first;
+
+    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
+    if (qId.docs.isNotEmpty) return qId.docs.first;
+
+    final all = await _col.limit(100).get();
+    for (final d in all.docs) {
+      if (parseEntityId(d.id, d.data()) == id) return d;
+    }
+
     return direct;
   }
 }
@@ -404,7 +457,8 @@ class FirestoreTransactionRepository implements TransactionRepository {
     required String transactionDate,
     String? notes,
   }) async {
-    final docRef = _col.doc();
+    final newId = DateTime.now().millisecondsSinceEpoch;
+    final docRef = _col.doc('tx_$newId');
     String invoiceNumber;
 
     // Penomoran via Firestore Transaction (Online) atau Draft Sementara (Offline Opsi B)
@@ -425,11 +479,15 @@ class FirestoreTransactionRepository implements TransactionRepository {
     // Ambil nama customer untuk denormalisasi
     String? customerName;
     try {
-      final cDoc = await db.collection('customers').doc('legacy_$customerId').get();
-      customerName = cDoc.data()?['name'] as String?;
+      final cDoc = await _findCustomerDoc(customerId);
+      if (cDoc.exists) {
+        customerName = cDoc.data()?['name'] as String?;
+      }
     } catch (_) {}
 
     final data = {
+      'id': newId,
+      'legacyId': newId,
       'customerId': 'legacy_$customerId',
       'customerName': customerName,
       'number': invoiceNumber,
@@ -440,7 +498,6 @@ class FirestoreTransactionRepository implements TransactionRepository {
       'type': 'sale',
       'notes': (notes == null || notes.isEmpty) ? null : notes,
       'itemCount': 0,
-      'legacyId': null,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -521,9 +578,12 @@ class FirestoreTransactionRepository implements TransactionRepository {
     if (!doc.exists) throw Exception('Transaksi ID $transactionId tidak ditemukan.');
 
     final calcSubtotal = subtotal ?? (quantity * unitPrice);
-    final itemRef = doc.reference.collection('items').doc();
+    final newItemId = DateTime.now().millisecondsSinceEpoch;
+    final itemRef = doc.reference.collection('items').doc('item_$newItemId');
 
     final itemData = {
+      'id': newItemId,
+      'legacyId': newItemId,
       'productId': productId != null ? 'legacy_$productId' : null,
       'productName': productName,
       'description': (description == null || description.isEmpty) ? null : description,
@@ -531,7 +591,6 @@ class FirestoreTransactionRepository implements TransactionRepository {
       'unit': unit,
       'unitPrice': unitPrice,
       'subtotal': calcSubtotal,
-      'legacyId': null,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -560,6 +619,23 @@ class FirestoreTransactionRepository implements TransactionRepository {
     return TransactionItem.fromDocument(itemRef.id, itemData, transactionId: transactionId);
   }
 
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _findItemDoc(int itemId) async {
+    // 1. Cari via legacyId
+    var q = await db.collectionGroup('items').where('legacyId', isEqualTo: itemId).limit(1).get();
+    if (q.docs.isNotEmpty) return q.docs.first;
+
+    // 2. Cari via id
+    q = await db.collectionGroup('items').where('id', isEqualTo: itemId).limit(1).get();
+    if (q.docs.isNotEmpty) return q.docs.first;
+
+    // 3. Fallback scan item_ docId
+    final all = await db.collectionGroup('items').limit(200).get();
+    for (final d in all.docs) {
+      if (parseEntityId(d.id, d.data()) == itemId) return d;
+    }
+    return null;
+  }
+
   @override
   Future<TransactionItem> updateItem(
     int itemId, {
@@ -571,12 +647,10 @@ class FirestoreTransactionRepository implements TransactionRepository {
     int? unitPrice,
     int? subtotal,
   }) async {
-    // Cari item di seluruh subkoleksi group
-    final itemQuery = await db.collectionGroup('items').where('legacyId', isEqualTo: itemId).limit(1).get();
-    if (itemQuery.docs.isEmpty) throw Exception('Item ID $itemId tidak ditemukan.');
+    final itemDoc = await _findItemDoc(itemId);
+    if (itemDoc == null) throw Exception('Item ID $itemId tidak ditemukan.');
 
-    final itemDoc = itemQuery.docs.first;
-    final oldData = itemDoc.data();
+    final oldData = itemDoc.data()!;
     final newQty = quantity ?? numFrom(oldData['quantity']);
     final newPrice = unitPrice ?? numFrom(oldData['unitPrice']);
     final newSubtotal = subtotal ?? (newQty * newPrice);
@@ -597,7 +671,7 @@ class FirestoreTransactionRepository implements TransactionRepository {
     // Update / hapus sinkronisasi expense
     final txRef = itemDoc.reference.parent.parent!;
     final txSnap = await txRef.get();
-    final txId = txSnap.id.replaceAll('legacy_', '');
+    final txId = txSnap.id.replaceAll(RegExp(r'^(legacy_|tx_)'), '');
     final expDocId = ExpenseSyncService.docId(transactionId: txId, itemId: itemDoc.id);
 
     if (ExpenseSyncService.isExpenseItem(newSubtotal)) {
@@ -623,13 +697,12 @@ class FirestoreTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> deleteItem(int itemId) async {
-    final itemQuery = await db.collectionGroup('items').where('legacyId', isEqualTo: itemId).limit(1).get();
-    if (itemQuery.docs.isEmpty) return;
+    final itemDoc = await _findItemDoc(itemId);
+    if (itemDoc == null) return;
 
-    final itemDoc = itemQuery.docs.first;
     final txRef = itemDoc.reference.parent.parent!;
     final txSnap = await txRef.get();
-    final txId = txSnap.id.replaceAll('legacy_', '');
+    final txId = txSnap.id.replaceAll(RegExp(r'^(legacy_|tx_)'), '');
 
     // Hapus expense turunan jika ada
     final expDocId = ExpenseSyncService.docId(transactionId: txId, itemId: itemDoc.id);
@@ -652,12 +725,63 @@ class FirestoreTransactionRepository implements TransactionRepository {
     });
   }
 
+  Future<DocumentSnapshot<Map<String, dynamic>>> _findCustomerDoc(int id) async {
+    final cCol = db.collection('customers');
+    final cCust = await cCol.doc('cust_$id').get();
+    if (cCust.exists) return cCust;
+    final cLeg = await cCol.doc('legacy_$id').get();
+    if (cLeg.exists) return cLeg;
+    final cRaw = await cCol.doc('$id').get();
+    if (cRaw.exists) return cRaw;
+
+    final qLeg = await cCol.where('legacyId', isEqualTo: id).limit(1).get();
+    if (qLeg.docs.isNotEmpty) return qLeg.docs.first;
+
+    final qId = await cCol.where('id', isEqualTo: id).limit(1).get();
+    if (qId.docs.isNotEmpty) return qId.docs.first;
+
+    return cLeg;
+  }
+
   Future<DocumentSnapshot<Map<String, dynamic>>> _findTransactionDoc(int id) async {
-    final direct = await _col.doc('legacy_$id').get();
-    if (direct.exists) return direct;
-    final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
-    if (q.docs.isNotEmpty) return q.docs.first;
-    return direct;
+    // 1. Direct doc ID
+    final txRef = _col.doc('tx_$id');
+    final txSnap = await txRef.get();
+    if (txSnap.exists) return txSnap;
+
+    final legacyRef = _col.doc('legacy_$id');
+    final legacySnap = await legacyRef.get();
+    if (legacySnap.exists) return legacySnap;
+
+    final directRef = _col.doc('$id');
+    final directSnap = await directRef.get();
+    if (directSnap.exists) return directSnap;
+
+    // 2. Query legacyId
+    final qLegacy = await _col.where('legacyId', isEqualTo: id).limit(1).get();
+    if (qLegacy.docs.isNotEmpty) return qLegacy.docs.first;
+
+    // 3. Query id
+    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
+    if (qId.docs.isNotEmpty) return qId.docs.first;
+
+    // 4. Pencocokan nomor invoice INV-YYYYMMDD-NNN jika id formatnya tanggal+urutan
+    final idStr = id.toString();
+    if (idStr.length > 8) {
+      final datePart = idStr.substring(0, 8);
+      final seqPart = int.tryParse(idStr.substring(8)) ?? 0;
+      final formattedInv = 'INV-$datePart-${seqPart.toString().padLeft(3, '0')}';
+      final qInv = await _col.where('number', isEqualTo: formattedInv).limit(1).get();
+      if (qInv.docs.isNotEmpty) return qInv.docs.first;
+    }
+
+    // 5. Fallback scan
+    final all = await _col.limit(100).get();
+    for (final d in all.docs) {
+      if (parseEntityId(d.id, d.data()) == id) return d;
+    }
+
+    return legacySnap;
   }
 }
 
@@ -739,8 +863,11 @@ class FirestoreExpenseRepository implements ExpenseRepository {
     required int amount,
     String? notes,
   }) async {
-    final docRef = _col.doc();
+    final newId = DateTime.now().millisecondsSinceEpoch;
+    final docRef = _col.doc('exp_$newId');
     final data = {
+      'id': newId,
+      'legacyId': newId,
       'date': expenseDate,
       'title': title.trim(),
       'category': (category == null || category.trim().isEmpty) ? null : category.trim(),
@@ -749,7 +876,6 @@ class FirestoreExpenseRepository implements ExpenseRepository {
       'transactionId': null,
       'syncKey': null,
       'notes': (notes == null || notes.trim().isEmpty) ? null : notes.trim(),
-      'legacyId': null,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -804,10 +930,29 @@ class FirestoreExpenseRepository implements ExpenseRepository {
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _findExpenseDoc(int id) async {
-    final direct = await _col.doc('legacy_$id').get();
+    final expRef = _col.doc('exp_$id');
+    final expSnap = await expRef.get();
+    if (expSnap.exists) return expSnap;
+
+    final legacyRef = _col.doc('legacy_$id');
+    final direct = await legacyRef.get();
     if (direct.exists) return direct;
+
+    final rawRef = _col.doc('$id');
+    final directRaw = await rawRef.get();
+    if (directRaw.exists) return directRaw;
+
     final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
     if (q.docs.isNotEmpty) return q.docs.first;
+
+    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
+    if (qId.docs.isNotEmpty) return qId.docs.first;
+
+    final all = await _col.limit(100).get();
+    for (final d in all.docs) {
+      if (parseEntityId(d.id, d.data()) == id) return d;
+    }
+
     return direct;
   }
 }
@@ -844,17 +989,7 @@ class FirestoreDashboardRepository implements DashboardRepository {
         .get();
 
     final recent = recentSnap.docs.map((d) {
-      final data = d.data();
-      final parsedId = numFrom(data['legacyId'] ?? data['id']);
-      return TransactionSummary(
-        id: parsedId > 0 ? parsedId : int.tryParse(d.id.replaceAll(RegExp(r'\D'), '')) ?? 0,
-        transactionNumber: (data['number'] ?? data['transaction_number'] ?? '') as String,
-        transactionDate: (data['date'] ?? data['transaction_date'] ?? '') as String,
-        totalAmount: numFrom(data['totalAmount'] ?? data['total_amount']),
-        status: (data['status'] ?? 'draft') as String,
-        paymentStatus: data['paymentStatus'] as String?,
-        customerName: data['customerName'] as String?,
-      );
+      return TransactionSummary.fromDocument(d.id, d.data());
     }).toList();
 
     if (summaryDoc.exists) {
