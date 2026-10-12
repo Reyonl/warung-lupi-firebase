@@ -1,0 +1,9 @@
+{
+  "name": "warung-lupi-migrate",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Script migrasi data snapshot MySQL ke Cloud Firestore",
+  "dependencies": {
+    "mysql2": "^3.12.0"
+  }
+}

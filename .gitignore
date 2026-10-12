@@ -51,6 +51,7 @@ app.*.map.json
 backups/
 *.sql
 *.csv
+tools/migrate/node_modules/
 tools/migrate/.env
 tools/migrate/*service-account*.json
 android/key.properties
