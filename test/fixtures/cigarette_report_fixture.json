@@ -1,0 +1,120 @@
+{
+  "summary": {
+    "cigarette_quantity": 15,
+    "cigarette_sales": 480000,
+    "bon_count": 7,
+    "paid_sales": 0,
+    "unpaid_sales": 480000
+  },
+  "items": [
+    {
+      "product_name": "Mg. MAX",
+      "total_quantity": 5,
+      "total_sales": 160000
+    },
+    {
+      "product_name": "SURYA 16",
+      "total_quantity": 4,
+      "total_sales": 152000
+    },
+    {
+      "product_name": "S.MILD 16",
+      "total_quantity": 2,
+      "total_sales": 76000
+    },
+    {
+      "product_name": "S. PRIMA",
+      "total_quantity": 2,
+      "total_sales": 36000
+    },
+    {
+      "product_name": "EVO BIRU",
+      "total_quantity": 1,
+      "total_sales": 28000
+    },
+    {
+      "product_name": "Mg. BINTANG",
+      "total_quantity": 1,
+      "total_sales": 28000
+    }
+  ],
+  "transactions": {
+    "data": [
+      {
+        "id": 266,
+        "transaction_number": "INV-20261012-013",
+        "transaction_date": "2026-10-12",
+        "customer_name": "UNI/UDA CHANTA",
+        "payment_status": "unpaid",
+        "cigarette_quantity": 1,
+        "cigarette_total": 38000
+      },
+      {
+        "id": 260,
+        "transaction_number": "INV-20261012-007",
+        "transaction_date": "2026-10-12",
+        "customer_name": "PAK ADE",
+        "payment_status": "unpaid",
+        "cigarette_quantity": 2,
+        "cigarette_total": 66000
+      },
+      {
+        "id": 258,
+        "transaction_number": "INV-20261012-005",
+        "transaction_date": "2026-10-12",
+        "customer_name": "ANDI",
+        "payment_status": "unpaid",
+        "cigarette_quantity": 2,
+        "cigarette_total": 76000
+      },
+      {
+        "id": 211,
+        "transaction_number": "INV-20261008-011",
+        "transaction_date": "2026-10-08",
+        "customer_name": "DAUN",
+        "payment_status": "unpaid",
+        "cigarette_quantity": 5,
+        "cigarette_total": 160000
+      },
+      {
+        "id": 204,
+        "transaction_number": "INV-20261008-004",
+        "transaction_date": "2026-10-08",
+        "customer_name": "TARYO",
+        "payment_status": "unpaid",
+        "cigarette_quantity": 1,
+        "cigarette_total": 28000
+      },
+      {
+        "id": 194,
+        "transaction_number": "INV-20261007-011",
+        "transaction_date": "2026-10-07",
+        "customer_name": "BUMDES",
+        "payment_status": "unpaid",
+        "cigarette_quantity": 2,
+        "cigarette_total": 76000
+      },
+      {
+        "id": 166,
+        "transaction_number": "INV-20261005-001",
+        "transaction_date": "2026-10-05",
+        "customer_name": "Opung",
+        "payment_status": "unpaid",
+        "cigarette_quantity": 2,
+        "cigarette_total": 36000
+      }
+    ],
+    "total": 7,
+    "per_page": 20,
+    "current_page": 1,
+    "last_page": 1
+  },
+  "products": [
+    "EVO BIRU",
+    "Mg. BINTANG",
+    "Mg. MAX",
+    "S. PRIMA",
+    "S.MILD 16",
+    "SURYA 16"
+  ]
+}

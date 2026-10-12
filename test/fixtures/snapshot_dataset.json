@@ -1,0 +1,1897 @@
+[
+  {
+    "id": 51,
+    "transaction_number": "INV-20260927-013",
+    "transaction_date": "2026-09-27",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "Roji",
+    "items": [
+      {
+        "id": 350,
+        "product_name": "Sisa bon lama",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 388000,
+        "subtotal": 388000,
+        "category_name": null
+      },
+      {
+        "id": 1357,
+        "product_name": "TITIP BON",
+        "description": "4/10",
+        "quantity": 1,
+        "unit_price": -50000,
+        "subtotal": -50000,
+        "category_name": null
+      }
+    ]
+  },
+  {
+    "id": 166,
+    "transaction_number": "INV-20261005-001",
+    "transaction_date": "2026-10-05",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "Opung",
+    "items": [
+      {
+        "id": 1335,
+        "product_name": "SISA BON",
+        "description": "4/10 MINGGU",
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": null
+      },
+      {
+        "id": 1371,
+        "product_name": "Energen balls",
+        "description": "5/10 SENIN",
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": null
+      },
+      {
+        "id": 1372,
+        "product_name": "Kopi",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": null
+      },
+      {
+        "id": 1373,
+        "product_name": "Es Bonteh",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": null
+      },
+      {
+        "id": 1574,
+        "product_name": "Kopi",
+        "description": "6/10 SELASA",
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": null
+      },
+      {
+        "id": 1575,
+        "product_name": "energen balls",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": null
+      },
+      {
+        "id": 1576,
+        "product_name": "gorengan",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1577,
+        "product_name": "es jeruk",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 7000,
+        "subtotal": 14000,
+        "category_name": null
+      },
+      {
+        "id": 1628,
+        "product_name": "Kopi",
+        "description": "7/10 RABU",
+        "quantity": 2,
+        "unit_price": 4000,
+        "subtotal": 8000,
+        "category_name": null
+      },
+      {
+        "id": 1629,
+        "product_name": "Jajan",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1630,
+        "product_name": "gorengan",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 10000,
+        "subtotal": 10000,
+        "category_name": null
+      },
+      {
+        "id": 1631,
+        "product_name": "makaroni",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1632,
+        "product_name": "emping",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 2161,
+        "product_name": "KOPI",
+        "description": "9/10 JUMAT",
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2162,
+        "product_name": "S. PRIMA",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2163,
+        "product_name": "ENERGEN BALLS",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2164,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2165,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 4,
+        "unit_price": 2000,
+        "subtotal": 7000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2166,
+        "product_name": "ENERGEN BALLS",
+        "description": "10/10 SABTU",
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2167,
+        "product_name": "KOPI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2168,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 6,
+        "unit_price": 2000,
+        "subtotal": 10000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2170,
+        "product_name": "S. PRIMA",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2171,
+        "product_name": "ES TARIK",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2172,
+        "product_name": "KOPI",
+        "description": "11/10 MINGGU",
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2173,
+        "product_name": "ENERGEN BALLS",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2174,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 6,
+        "unit_price": 2000,
+        "subtotal": 10000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2175,
+        "product_name": "ES TARIK",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2191,
+        "product_name": "TITIP BON",
+        "description": null,
+        "quantity": 1,
+        "unit_price": -100000,
+        "subtotal": -100000,
+        "category_name": null
+      }
+    ]
+  },
+  {
+    "id": 193,
+    "transaction_number": "INV-20261007-010",
+    "transaction_date": "2026-10-07",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "Mama Sasa",
+    "items": [
+      {
+        "id": 1654,
+        "product_name": "yakult",
+        "description": "6/10 SELASA",
+        "quantity": 4,
+        "unit_price": 3000,
+        "subtotal": 12000,
+        "category_name": null
+      },
+      {
+        "id": 1655,
+        "product_name": "Indomie",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": null
+      },
+      {
+        "id": 1656,
+        "product_name": "Ayam goreng",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 9000,
+        "subtotal": 9000,
+        "category_name": null
+      },
+      {
+        "id": 1657,
+        "product_name": "soto ayam",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 17000,
+        "subtotal": 17000,
+        "category_name": null
+      },
+      {
+        "id": 1658,
+        "product_name": "pop ice",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1659,
+        "product_name": "teh pucuk",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1660,
+        "product_name": "sari kacang",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": null
+      },
+      {
+        "id": 1661,
+        "product_name": "Teajus",
+        "description": "7/10 RABU",
+        "quantity": 2,
+        "unit_price": 3000,
+        "subtotal": 6000,
+        "category_name": null
+      },
+      {
+        "id": 1662,
+        "product_name": "kepala ayam",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 3000,
+        "subtotal": 3000,
+        "category_name": null
+      },
+      {
+        "id": 1663,
+        "product_name": "paha ayam",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 9000,
+        "subtotal": 9000,
+        "category_name": null
+      },
+      {
+        "id": 1664,
+        "product_name": "Gas",
+        "description": "Jaki",
+        "quantity": 1,
+        "unit_price": 23000,
+        "subtotal": 23000,
+        "category_name": null
+      },
+      {
+        "id": 1665,
+        "product_name": "cleo",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 1000,
+        "subtotal": 1000,
+        "category_name": null
+      },
+      {
+        "id": 1666,
+        "product_name": "kerupuk",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 2000,
+        "subtotal": 2000,
+        "category_name": null
+      },
+      {
+        "id": 1667,
+        "product_name": "pucuk",
+        "description": "jaki",
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1707,
+        "product_name": "indomie",
+        "description": "8/10",
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": null
+      },
+      {
+        "id": 1708,
+        "product_name": "teajus",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 3000,
+        "subtotal": 3000,
+        "category_name": null
+      },
+      {
+        "id": 1709,
+        "product_name": "teh pucuk",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1710,
+        "product_name": "ademsari KL",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 8000,
+        "subtotal": 8000,
+        "category_name": null
+      },
+      {
+        "id": 2176,
+        "product_name": "SARI KACANG",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2177,
+        "product_name": "PUCUK/SOSRO",
+        "description": "8/10 KAMIS",
+        "quantity": 2,
+        "unit_price": 5000,
+        "subtotal": 10000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2178,
+        "product_name": "AYAM GORENG",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 9000,
+        "subtotal": 9000,
+        "category_name": null
+      },
+      {
+        "id": 2179,
+        "product_name": "TEAJUS",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 3000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2181,
+        "product_name": "KACANG ROSTA",
+        "description": null,
+        "quantity": 3,
+        "unit_price": 1000,
+        "subtotal": 3000,
+        "category_name": null
+      },
+      {
+        "id": 2182,
+        "product_name": "COCACOLA",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": null
+      },
+      {
+        "id": 2183,
+        "product_name": "PUCUK/SOSRO",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2184,
+        "product_name": "IKAN MAS",
+        "description": null,
+        "quantity": 3,
+        "unit_price": 15000,
+        "subtotal": 45000,
+        "category_name": null
+      },
+      {
+        "id": 2185,
+        "product_name": "NAGASARI",
+        "description": "10/10 SABTU",
+        "quantity": 1,
+        "unit_price": 3000,
+        "subtotal": 3000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2186,
+        "product_name": "PUCUK/SOSRO",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 5000,
+        "subtotal": 10000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2187,
+        "product_name": "MAKAN",
+        "description": "jaki",
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2188,
+        "product_name": "TEAJUS",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 3000,
+        "subtotal": 3000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2189,
+        "product_name": "MAKAN",
+        "description": "jaki",
+        "quantity": 1,
+        "unit_price": 19000,
+        "subtotal": 19000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2190,
+        "product_name": "PUCUK/SOSRO",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2358,
+        "product_name": "KEPALA AYAM",
+        "description": "12/10 SENIN",
+        "quantity": 3,
+        "unit_price": 3000,
+        "subtotal": 9000,
+        "category_name": null
+      },
+      {
+        "id": 2359,
+        "product_name": "LARUTAN KL",
+        "description": "1 bpk oboy",
+        "quantity": 2,
+        "unit_price": 8000,
+        "subtotal": 16000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2360,
+        "product_name": "MINUTE PULPY",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2361,
+        "product_name": "GAS",
+        "description": "teddy",
+        "quantity": 1,
+        "unit_price": 23000,
+        "subtotal": 23000,
+        "category_name": null
+      },
+      {
+        "id": 2362,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 2000,
+        "subtotal": 4000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2363,
+        "product_name": "sukro",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 1000,
+        "subtotal": 1000,
+        "category_name": "Jajanan"
+      }
+    ]
+  },
+  {
+    "id": 194,
+    "transaction_number": "INV-20261007-011",
+    "transaction_date": "2026-10-07",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "BUMDES",
+    "items": [
+      {
+        "id": 1668,
+        "product_name": "Susu",
+        "description": "5/10 SENIN",
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1669,
+        "product_name": "Aqua K",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1670,
+        "product_name": "Kopi",
+        "description": "7/10 RABU",
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": null
+      },
+      {
+        "id": 1671,
+        "product_name": "Aqua K",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": null
+      },
+      {
+        "id": 1705,
+        "product_name": "kopi",
+        "description": "8/10 KAMIS",
+        "quantity": 2,
+        "unit_price": 4000,
+        "subtotal": 8000,
+        "category_name": null
+      },
+      {
+        "id": 2192,
+        "product_name": "KOPI",
+        "description": "10/10 SABTU",
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2193,
+        "product_name": "SURYA 16",
+        "description": "angkut sampah",
+        "quantity": 1,
+        "unit_price": 38000,
+        "subtotal": 38000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2194,
+        "product_name": "AQUA/LEMIN T",
+        "description": "angkut sampah",
+        "quantity": 3,
+        "unit_price": 5000,
+        "subtotal": 15000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2195,
+        "product_name": "AQUA/LEMIN T",
+        "description": "11/10 MINGGU",
+        "quantity": 3,
+        "unit_price": 5000,
+        "subtotal": 15000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2196,
+        "product_name": "MAKAN",
+        "description": "tamu p.rion",
+        "quantity": 2,
+        "unit_price": 18000,
+        "subtotal": 36000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2197,
+        "product_name": "MAKAN",
+        "description": "p.rion",
+        "quantity": 1,
+        "unit_price": 20000,
+        "subtotal": 20000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2198,
+        "product_name": "ES GDAY CAPCIN",
+        "description": "p.rion",
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2354,
+        "product_name": "AQUA/LEMIN T",
+        "description": null,
+        "quantity": 4,
+        "unit_price": 5000,
+        "subtotal": 20000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2355,
+        "product_name": "SURYA 16",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 38000,
+        "subtotal": 38000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2356,
+        "product_name": "KOPI",
+        "description": "12/10 SENIN",
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2357,
+        "product_name": "SUSU HANGAT",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      }
+    ]
+  },
+  {
+    "id": 203,
+    "transaction_number": "INV-20261008-003",
+    "transaction_date": "2026-10-08",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "FAUZI",
+    "items": [
+      {
+        "id": 1712,
+        "product_name": "SISA BON",
+        "description": "8/10 KAMIS",
+        "quantity": 1,
+        "unit_price": 30000,
+        "subtotal": 30000,
+        "category_name": null
+      },
+      {
+        "id": 1820,
+        "product_name": "SUSU HANGAT",
+        "description": "9/10 JUMAT",
+        "quantity": 2,
+        "unit_price": 5000,
+        "subtotal": 10000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1821,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 7000,
+        "subtotal": 14000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1822,
+        "product_name": "MAKAN",
+        "description": "jaki",
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 1823,
+        "product_name": "KERUPUK",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 2000,
+        "subtotal": 2000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2199,
+        "product_name": "SUSU HANGAT",
+        "description": "10/10 SABTU",
+        "quantity": 2,
+        "unit_price": 5000,
+        "subtotal": 10000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2200,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 7000,
+        "subtotal": 14000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2201,
+        "product_name": "JAJANAN",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 15000,
+        "subtotal": 15000,
+        "category_name": null
+      },
+      {
+        "id": 2202,
+        "product_name": "ES BATU",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 3000,
+        "subtotal": 6000,
+        "category_name": null
+      },
+      {
+        "id": 2203,
+        "product_name": "MAKAN",
+        "description": "jaki",
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2204,
+        "product_name": "SUSU HANGAT",
+        "description": "11/10 MINGGU",
+        "quantity": 2,
+        "unit_price": 5000,
+        "subtotal": 10000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2205,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 7000,
+        "subtotal": 14000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2206,
+        "product_name": "MAKAN",
+        "description": "fauzi",
+        "quantity": 1,
+        "unit_price": 19000,
+        "subtotal": 19000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2207,
+        "product_name": "MAKAN",
+        "description": "jaki",
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2208,
+        "product_name": "IKAN KEMBUNG",
+        "description": null,
+        "quantity": 1,
+        "unit_price": -50000,
+        "subtotal": -50000,
+        "category_name": null
+      },
+      {
+        "id": 2402,
+        "product_name": "SUSU HANGAT",
+        "description": "12/10 SENIN",
+        "quantity": 2,
+        "unit_price": 5000,
+        "subtotal": 10000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2403,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 7000,
+        "subtotal": 14000,
+        "category_name": "Minuman"
+      }
+    ]
+  },
+  {
+    "id": 204,
+    "transaction_number": "INV-20261008-004",
+    "transaction_date": "2026-10-08",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "TARYO",
+    "items": [
+      {
+        "id": 1713,
+        "product_name": "SISA BON",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 210000,
+        "subtotal": 210000,
+        "category_name": null
+      },
+      {
+        "id": 2209,
+        "product_name": "KOPI",
+        "description": "9/10 JUMAT",
+        "quantity": 2,
+        "unit_price": 4000,
+        "subtotal": 8000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2210,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2211,
+        "product_name": "DONAT",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 3000,
+        "subtotal": 3000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2212,
+        "product_name": "EMPING",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2213,
+        "product_name": "Mg. BINTANG",
+        "description": "10/10 SABTU",
+        "quantity": 1,
+        "unit_price": 28000,
+        "subtotal": 28000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2214,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2215,
+        "product_name": "KOPI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2216,
+        "product_name": "MAKAN",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2217,
+        "product_name": "NUTRISARI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2425,
+        "product_name": "KOPI",
+        "description": "12/10 SENIN",
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2426,
+        "product_name": "POP ICE",
+        "description": "12/10 SENIN",
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      }
+    ]
+  },
+  {
+    "id": 211,
+    "transaction_number": "INV-20261008-011",
+    "transaction_date": "2026-10-08",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "DAUN",
+    "items": [
+      {
+        "id": 1759,
+        "product_name": "MAKAN",
+        "description": "MLM",
+        "quantity": 1,
+        "unit_price": 20000,
+        "subtotal": 20000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 1760,
+        "product_name": "TEH MANIS",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1761,
+        "product_name": "MAKARONI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 1762,
+        "product_name": "MILKU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1763,
+        "product_name": "Mg. MAX",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 32000,
+        "subtotal": 32000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 1764,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 2000,
+        "subtotal": 2000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 1765,
+        "product_name": "KOPI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1766,
+        "product_name": "INDOMIE KUAH+TELUR",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 12000,
+        "subtotal": 12000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 1858,
+        "product_name": "MAKAN",
+        "description": "MLM 9/10 JUMAT",
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 1859,
+        "product_name": "TEH MANIS",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1860,
+        "product_name": "Mg. MAX",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 32000,
+        "subtotal": 32000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 1861,
+        "product_name": "MILKU",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 5000,
+        "subtotal": 10000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1862,
+        "product_name": "KOPI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1863,
+        "product_name": "MAKAN",
+        "description": "siang",
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2229,
+        "product_name": "MAKAN NILA",
+        "description": "mlm 10/10 SABTU",
+        "quantity": 1,
+        "unit_price": 22000,
+        "subtotal": 22000,
+        "category_name": null
+      },
+      {
+        "id": 2230,
+        "product_name": "Mg. MAX",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 32000,
+        "subtotal": 64000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2231,
+        "product_name": "COCONUT",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 1000,
+        "subtotal": 1000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2232,
+        "product_name": "KOPI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2233,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 2000,
+        "subtotal": 2000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2234,
+        "product_name": "INDOMIE KUAH+TELUR",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 12000,
+        "subtotal": 12000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2235,
+        "product_name": "TEH MANIS",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 4000,
+        "subtotal": 8000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2236,
+        "product_name": "MILKU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2237,
+        "product_name": "MAKAN",
+        "description": "mlm",
+        "quantity": 1,
+        "unit_price": 17000,
+        "subtotal": 17000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2238,
+        "product_name": "POCARI KL/BT",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 8000,
+        "subtotal": 8000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2239,
+        "product_name": "GDAY CAPCIN HANGAT",
+        "description": "11/10 MINGGU",
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2240,
+        "product_name": "COCONUT",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 1000,
+        "subtotal": 1000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2241,
+        "product_name": "YOU.C1000",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 8000,
+        "subtotal": 8000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2340,
+        "product_name": "MAKAN",
+        "description": "mlm 12/10 SENIN",
+        "quantity": 1,
+        "unit_price": 20000,
+        "subtotal": 20000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2341,
+        "product_name": "TEH MANIS",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 4000,
+        "subtotal": 8000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2342,
+        "product_name": "MIXAGRIP",
+        "description": null,
+        "quantity": 3,
+        "unit_price": 2000,
+        "subtotal": 6000,
+        "category_name": "Lainnya"
+      },
+      {
+        "id": 2343,
+        "product_name": "NIPIS MADU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2344,
+        "product_name": "Mg. MAX",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 32000,
+        "subtotal": 32000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2345,
+        "product_name": "MILKU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2346,
+        "product_name": "GDAY CAPCIN HANGAT",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2347,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 2000,
+        "subtotal": 2000,
+        "category_name": "Jajanan"
+      }
+    ]
+  },
+  {
+    "id": 227,
+    "transaction_number": "INV-20261009-009",
+    "transaction_date": "2026-10-09",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "Nji",
+    "items": [
+      {
+        "id": 1916,
+        "product_name": "TEH TUBRUK",
+        "description": "9/10 JUMAT",
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 1917,
+        "product_name": "ES BATU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 8000,
+        "subtotal": 8000,
+        "category_name": null
+      },
+      {
+        "id": 1918,
+        "product_name": "PUCUK/SOSRO",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2242,
+        "product_name": "ES BATU",
+        "description": "10/10 SABTU",
+        "quantity": 1,
+        "unit_price": 10000,
+        "subtotal": 10000,
+        "category_name": null
+      },
+      {
+        "id": 2243,
+        "product_name": "MAKAN",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 18000,
+        "subtotal": 18000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2244,
+        "product_name": "ES BATU",
+        "description": "11/10 MINGGU",
+        "quantity": 1,
+        "unit_price": 10000,
+        "subtotal": 10000,
+        "category_name": null
+      },
+      {
+        "id": 2245,
+        "product_name": "TEH TUBRUK",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2316,
+        "product_name": "ES BATU",
+        "description": "12/10 SENIN",
+        "quantity": 1,
+        "unit_price": 10000,
+        "subtotal": 10000,
+        "category_name": null
+      }
+    ]
+  },
+  {
+    "id": 228,
+    "transaction_number": "INV-20261009-010",
+    "transaction_date": "2026-10-09",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "FELIX",
+    "items": [
+      {
+        "id": 1919,
+        "product_name": "BON FELIX",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 106000,
+        "subtotal": 106000,
+        "category_name": null
+      },
+      {
+        "id": 1920,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 3,
+        "unit_price": 2000,
+        "subtotal": 5000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2246,
+        "product_name": "GORENGAN",
+        "description": "10/10 Sabtu",
+        "quantity": 3,
+        "unit_price": 2000,
+        "subtotal": 5000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2247,
+        "product_name": "GORENGAN",
+        "description": "11/10 Minggu",
+        "quantity": 3,
+        "unit_price": 2000,
+        "subtotal": 5000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2319,
+        "product_name": "GORENGAN",
+        "description": "12/10 SENIN",
+        "quantity": 3,
+        "unit_price": 2000,
+        "subtotal": 5000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2320,
+        "product_name": "TITIP BON",
+        "description": null,
+        "quantity": 1,
+        "unit_price": -50000,
+        "subtotal": -50000,
+        "category_name": null
+      }
+    ]
+  },
+  {
+    "id": 256,
+    "transaction_number": "INV-20261012-003",
+    "transaction_date": "2026-10-12",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "OPUNG",
+    "items": [
+      {
+        "id": 2293,
+        "product_name": "SISA BON",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 108000,
+        "subtotal": 108000,
+        "category_name": null
+      },
+      {
+        "id": 2294,
+        "product_name": "ENERGEN BALLS",
+        "description": "SENIN",
+        "quantity": 1,
+        "unit_price": 6000,
+        "subtotal": 6000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2295,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2296,
+        "product_name": "KOPI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2297,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 6,
+        "unit_price": 2000,
+        "subtotal": 10000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2298,
+        "product_name": "NUTRISARI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2300,
+        "product_name": "MAKARONI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2301,
+        "product_name": "TITIP",
+        "description": null,
+        "quantity": 1,
+        "unit_price": -40000,
+        "subtotal": -40000,
+        "category_name": null
+      }
+    ]
+  },
+  {
+    "id": 258,
+    "transaction_number": "INV-20261012-005",
+    "transaction_date": "2026-10-12",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "ANDI",
+    "items": [
+      {
+        "id": 2302,
+        "product_name": "SIMPAN",
+        "description": "8/10 KAMIS",
+        "quantity": 1,
+        "unit_price": -6000,
+        "subtotal": -6000,
+        "category_name": null
+      },
+      {
+        "id": 2303,
+        "product_name": "SURYA 16",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 38000,
+        "subtotal": 38000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2304,
+        "product_name": "ADEMSARI DOUBLE",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 12000,
+        "subtotal": 12000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2305,
+        "product_name": "ADEMSARI DOUBLE",
+        "description": "9/10 JUMAT",
+        "quantity": 1,
+        "unit_price": 12000,
+        "subtotal": 12000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2306,
+        "product_name": "SURYA 16",
+        "description": "11/10 MINGGU",
+        "quantity": 1,
+        "unit_price": 38000,
+        "subtotal": 38000,
+        "category_name": "Rokok"
+      }
+    ]
+  },
+  {
+    "id": 260,
+    "transaction_number": "INV-20261012-007",
+    "transaction_date": "2026-10-12",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "PAK ADE",
+    "items": [
+      {
+        "id": 2333,
+        "product_name": "MAKAN",
+        "description": "mlm SENIN 12/10",
+        "quantity": 1,
+        "unit_price": 15000,
+        "subtotal": 15000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2334,
+        "product_name": "KERUPUK",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 2000,
+        "subtotal": 2000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2335,
+        "product_name": "EVO BIRU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 28000,
+        "subtotal": 28000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2336,
+        "product_name": "KETAN",
+        "description": null,
+        "quantity": 2,
+        "unit_price": 3000,
+        "subtotal": 6000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2337,
+        "product_name": "SUSU JAHE",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2338,
+        "product_name": "KOPI",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 4000,
+        "subtotal": 4000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2339,
+        "product_name": "S.MILD 16",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 38000,
+        "subtotal": 38000,
+        "category_name": "Rokok"
+      }
+    ]
+  },
+  {
+    "id": 261,
+    "transaction_number": "INV-20261012-008",
+    "transaction_date": "2026-10-12",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "MARCO",
+    "items": [
+      {
+        "id": 2348,
+        "product_name": "KOPI",
+        "description": "12/10 SENIN",
+        "quantity": 3,
+        "unit_price": 4000,
+        "subtotal": 12000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2349,
+        "product_name": "INDOMIE GR+TELUR",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 13000,
+        "subtotal": 13000,
+        "category_name": "Makanan"
+      },
+      {
+        "id": 2350,
+        "product_name": "PUCUK/SOSRO",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2351,
+        "product_name": "AQUA/LEMIN T",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 5000,
+        "subtotal": 5000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2352,
+        "product_name": "KERUPUK",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 2000,
+        "subtotal": 2000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2353,
+        "product_name": "SIMPAN",
+        "description": null,
+        "quantity": 1,
+        "unit_price": -30000,
+        "subtotal": -30000,
+        "category_name": null
+      },
+      {
+        "id": 2427,
+        "product_name": "SEDUH SUSU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 2000,
+        "subtotal": 2000,
+        "category_name": null
+      }
+    ]
+  },
+  {
+    "id": 266,
+    "transaction_number": "INV-20261012-013",
+    "transaction_date": "2026-10-12",
+    "status": "completed",
+    "payment_status": "unpaid",
+    "customer_name": "UNI/UDA CHANTA",
+    "items": [
+      {
+        "id": 2419,
+        "product_name": "S.MILD 16",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 38000,
+        "subtotal": 38000,
+        "category_name": "Rokok"
+      },
+      {
+        "id": 2420,
+        "product_name": "KOPI+SUSU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2421,
+        "product_name": "AQUA/LEMIN B",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 7000,
+        "subtotal": 7000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2422,
+        "product_name": "GORENGAN",
+        "description": null,
+        "quantity": 3,
+        "unit_price": 2000,
+        "subtotal": 5000,
+        "category_name": "Jajanan"
+      },
+      {
+        "id": 2423,
+        "product_name": "BIKIN ES JERUK",
+        "description": null,
+        "quantity": 3,
+        "unit_price": 4000,
+        "subtotal": 12000,
+        "category_name": "Minuman"
+      },
+      {
+        "id": 2424,
+        "product_name": "ES TARIK+SUSU",
+        "description": null,
+        "quantity": 1,
+        "unit_price": 8000,
+        "subtotal": 8000,
+        "category_name": "Minuman"
+      }
+    ]
+  }
+]
