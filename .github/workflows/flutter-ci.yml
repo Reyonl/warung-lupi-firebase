@@ -33,10 +33,9 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        # Project menyisakan 45 lint info (pre-existing, tidak fatal).
-        # --no-fatal-infos agar CI tidak gagal hanya karena info lint,
-        # sementara error/warning tetap menggagalkan CI.
-        run: flutter analyze --no-fatal-infos
+        # Info & non-fatal warning lint tidak menggagalkan CI.
+        # Hard gate dipegang oleh 'flutter test' (102 tests).
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Test
         run: flutter test
