@@ -16,7 +16,19 @@ void main() {
       );
     });
 
-    test('Default values are all false', () {
+    test('Default values are all true (Cutover ke Firestore)', () {
+      expect(FeatureFlags.useFirestoreAll, isTrue);
+      expect(FeatureFlags.useFirestoreCustomers, isTrue);
+      expect(FeatureFlags.useFirestoreCategories, isTrue);
+      expect(FeatureFlags.useFirestoreProducts, isTrue);
+      expect(FeatureFlags.useFirestoreTransactions, isTrue);
+      expect(FeatureFlags.useFirestoreExpenses, isTrue);
+      expect(FeatureFlags.useFirestoreDashboard, isTrue);
+      expect(FeatureFlags.useFirestoreCigarettes, isTrue);
+    });
+
+    test('Rollback all: false mengembalikan seluruh modul ke REST API', () {
+      FeatureFlags.setOverrideForTesting(all: false);
       expect(FeatureFlags.useFirestoreAll, isFalse);
       expect(FeatureFlags.useFirestoreCustomers, isFalse);
       expect(FeatureFlags.useFirestoreCategories, isFalse);
@@ -27,16 +39,24 @@ void main() {
       expect(FeatureFlags.useFirestoreCigarettes, isFalse);
     });
 
-    test('Individual module overrides work independently', () {
-      FeatureFlags.setOverrideForTesting(customers: true);
+    test('Individual module overrides work independently saat rollback', () {
+      FeatureFlags.setOverrideForTesting(all: false, customers: true);
       expect(FeatureFlags.useFirestoreCustomers, isTrue);
       expect(FeatureFlags.useFirestoreProducts, isFalse);
       expect(FeatureFlags.useFirestoreTransactions, isFalse);
 
-      FeatureFlags.setOverrideForTesting(products: true, transactions: true);
+      FeatureFlags.setOverrideForTesting(all: false, products: true, transactions: true);
       expect(FeatureFlags.useFirestoreProducts, isTrue);
       expect(FeatureFlags.useFirestoreTransactions, isTrue);
       expect(FeatureFlags.useFirestoreExpenses, isFalse);
+    });
+
+    test('Individual module can be rolled back to REST while others stay on Firestore', () {
+      FeatureFlags.setOverrideForTesting(customers: false);
+      expect(FeatureFlags.useFirestoreAll, isTrue);
+      expect(FeatureFlags.useFirestoreCustomers, isFalse);
+      expect(FeatureFlags.useFirestoreProducts, isTrue);
+      expect(FeatureFlags.useFirestoreTransactions, isTrue);
     });
 
     test('useFirestoreAll overrides all modules', () {

@@ -9,8 +9,8 @@ import '../storage/prefs.dart';
 class FeatureFlags {
   FeatureFlags._();
 
-  // Environment variables compile-time
-  static const bool _envAll = bool.fromEnvironment('USE_FIRESTORE_ALL', defaultValue: false);
+  // Environment variables compile-time (Fase 8: Default cutover ke Cloud Firestore)
+  static const bool _envAll = bool.fromEnvironment('USE_FIRESTORE_ALL', defaultValue: true);
   static const bool _envCustomers = bool.fromEnvironment('USE_FIRESTORE_CUSTOMERS', defaultValue: false);
   static const bool _envCategories = bool.fromEnvironment('USE_FIRESTORE_CATEGORIES', defaultValue: false);
   static const bool _envProducts = bool.fromEnvironment('USE_FIRESTORE_PRODUCTS', defaultValue: false);
@@ -45,25 +45,25 @@ class FeatureFlags {
   static bool get useFirestoreAll => _prefAll ?? _envAll;
 
   static bool get useFirestoreCustomers =>
-      useFirestoreAll || (_prefCustomers ?? _envCustomers);
+      _prefCustomers ?? (useFirestoreAll || _envCustomers);
 
   static bool get useFirestoreCategories =>
-      useFirestoreAll || (_prefCategories ?? _envCategories);
+      _prefCategories ?? (useFirestoreAll || _envCategories);
 
   static bool get useFirestoreProducts =>
-      useFirestoreAll || (_prefProducts ?? _envProducts);
+      _prefProducts ?? (useFirestoreAll || _envProducts);
 
   static bool get useFirestoreTransactions =>
-      useFirestoreAll || (_prefTransactions ?? _envTransactions);
+      _prefTransactions ?? (useFirestoreAll || _envTransactions);
 
   static bool get useFirestoreExpenses =>
-      useFirestoreAll || (_prefExpenses ?? _envExpenses);
+      _prefExpenses ?? (useFirestoreAll || _envExpenses);
 
   static bool get useFirestoreDashboard =>
-      useFirestoreAll || (_prefDashboard ?? _envDashboard);
+      _prefDashboard ?? (useFirestoreAll || _envDashboard);
 
   static bool get useFirestoreCigarettes =>
-      useFirestoreAll || (_prefCigarettes ?? _envCigarettes);
+      _prefCigarettes ?? (useFirestoreAll || _envCigarettes);
 
   /// Helper untuk testing: reset atau set flag langsung.
   static void setOverrideForTesting({

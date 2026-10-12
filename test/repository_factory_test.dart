@@ -19,7 +19,18 @@ void main() {
       );
     });
 
-    test('Yields default Dio repositories when flags are false', () {
+    test('Yields default Firestore repositories on cutover', () {
+      expect(RepositoryFactory.customerRepository(), isA<FirestoreCustomerRepository>());
+      expect(RepositoryFactory.categoryRepository(), isA<FirestoreCategoryRepository>());
+      expect(RepositoryFactory.productRepository(), isA<FirestoreProductRepository>());
+      expect(RepositoryFactory.transactionRepository(), isA<FirestoreTransactionRepository>());
+      expect(RepositoryFactory.expenseRepository(), isA<FirestoreExpenseRepository>());
+      expect(RepositoryFactory.dashboardRepository(), isA<FirestoreDashboardRepository>());
+      expect(RepositoryFactory.cigaretteReportRepository(), isA<FirestoreCigaretteReportRepository>());
+    });
+
+    test('Yields legacy Dio repositories when rollback flag all is false', () {
+      FeatureFlags.setOverrideForTesting(all: false);
       expect(RepositoryFactory.customerRepository(), isA<CustomerRepository>());
       expect(RepositoryFactory.customerRepository(), isNot(isA<FirestoreCustomerRepository>()));
 
@@ -42,12 +53,12 @@ void main() {
       expect(RepositoryFactory.cigaretteReportRepository(), isNot(isA<FirestoreCigaretteReportRepository>()));
     });
 
-    test('Yields Firestore repositories when module flags are true', () {
-      FeatureFlags.setOverrideForTesting(customers: true, products: true);
+    test('Yields individual rolled back Dio repository while others remain Firestore', () {
+      FeatureFlags.setOverrideForTesting(customers: false);
 
-      expect(RepositoryFactory.customerRepository(), isA<FirestoreCustomerRepository>());
+      expect(RepositoryFactory.customerRepository(), isA<CustomerRepository>());
       expect(RepositoryFactory.productRepository(), isA<FirestoreProductRepository>());
-      expect(RepositoryFactory.categoryRepository(), isNot(isA<FirestoreCategoryRepository>()));
+      expect(RepositoryFactory.categoryRepository(), isA<FirestoreCategoryRepository>());
     });
 
     test('Yields all Firestore repositories when useFirestoreAll is true', () {

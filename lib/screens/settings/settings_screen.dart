@@ -716,10 +716,10 @@ class _FirestoreFlagsCard extends StatelessWidget {
           children: [
             const Row(
               children: [
-                Icon(Icons.cloud_sync, size: 20, color: AppColors.brand600),
+                Icon(Icons.cloud_done, size: 20, color: AppColors.brand600),
                 SizedBox(width: 8),
                 Text(
-                  'MIGRASI FIREBASE (STAGING FEATURE FLAGS)',
+                  'CLOUD FIRESTORE (PRODUCTION & FEATURE FLAGS)',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -731,14 +731,43 @@ class _FirestoreFlagsCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Alihkan komunikasi data per modul dari backend Laravel (REST API) ke Google Cloud Firestore (Staging). Perubahan disimpan ke preferensi lokal.',
+              'Secara default seluruh modul kini beroperasi di Cloud Firestore. Anda dapat mengalihkan sementara modul ke REST API (Laravel) untuk keperluan pengujian atau rollback darurat. Perubahan disimpan ke preferensi lokal.',
               style: TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
             const Divider(height: 24),
             ...modules.map((m) {
               final key = m['key']!;
               final label = m['label']!;
-              final isEnabled = flags[key] == true;
+              final bool isEnabled;
+              switch (key) {
+                case 'all':
+                  isEnabled = FeatureFlags.useFirestoreAll;
+                  break;
+                case 'customers':
+                  isEnabled = FeatureFlags.useFirestoreCustomers;
+                  break;
+                case 'categories':
+                  isEnabled = FeatureFlags.useFirestoreCategories;
+                  break;
+                case 'products':
+                  isEnabled = FeatureFlags.useFirestoreProducts;
+                  break;
+                case 'transactions':
+                  isEnabled = FeatureFlags.useFirestoreTransactions;
+                  break;
+                case 'expenses':
+                  isEnabled = FeatureFlags.useFirestoreExpenses;
+                  break;
+                case 'dashboard':
+                  isEnabled = FeatureFlags.useFirestoreDashboard;
+                  break;
+                case 'cigarettes':
+                  isEnabled = FeatureFlags.useFirestoreCigarettes;
+                  break;
+                default:
+                  isEnabled = false;
+              }
+
               return SwitchListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
@@ -751,10 +780,10 @@ class _FirestoreFlagsCard extends StatelessWidget {
                   ),
                 ),
                 subtitle: Text(
-                  isEnabled ? 'Firestore Staging' : 'Laravel REST API',
+                  isEnabled ? 'Cloud Firestore (Aktif)' : 'Laravel REST API (Fallback)',
                   style: TextStyle(
                     fontSize: 11,
-                    color: isEnabled ? Colors.green.shade700 : AppColors.textMuted,
+                    color: isEnabled ? Colors.green.shade700 : AppColors.brand600,
                   ),
                 ),
                 value: isEnabled,
