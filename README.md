@@ -1,75 +1,94 @@
-# Rekapan Warung — Warung Lupi
+# Rekapan Warung — Warung Lupi (Firebase Edition)
 
-Aplikasi mobile **Warung Lupi** (versi Flutter) untuk pencatatan bon/kuitansi,
-pelanggan, item, dan cetak struk thermal via printer Bluetooth.
+Aplikasi mobile kasir & pencatatan keuangan **Warung Lupi** (Flutter) untuk pencatatan bon/kuitansi, pelanggan, katalog produk, pengeluaran, laporan penjualan, serta cetak struk thermal via printer Bluetooth.
 
-Client Flutter dari aplikasi web Laravel + React (sumber: `C:\laragon\www\Rekapan_Warung`).
-Lihat [`docs/AUDIT.md`](docs/AUDIT.md) untuk pemetaan fitur lengkap dari web ke Flutter.
+Aplikasi ini telah dimigrasikan dari backend VPS Laravel/MySQL ke **Google Cloud Firestore (Firebase Spark Free Tier)** dengan arsitektur serverless mandiri, otentikasi aman anonim, dan sinkronisasi real-time antar-perangkat tanpa perlu mengelola server VPS.
+
+---
 
 ## Teknologi
 
-- **Flutter** 3.47.5 (channel stable)
-- **State management:** Provider
-- **Networking:** Dio (REST JSON ke backend Laravel)
-- **Bahasa/UI:** Bahasa Indonesia, format mata uang `id-ID`
+- **Flutter:** 3.47.5 (Channel Stable, Dart 3.13.4)
+- **Database:** Google Cloud Firestore (Jakarta `asia-southeast2`)
+- **Keamanan:** Firestore Security Rules + Anonymous Firebase Authentication
+- **State Management:** Provider
+- **Pencetakan:** Bluetooth Thermal ESC/POS (58mm & 80mm) via `print_bluetooth_thermal`
+- **Cadangan Fallback:** Dual-mode repository (dukungan REST API Laravel bila diperlukan)
 
-## Fitur (per audit)
+---
 
-- **Dashboard** — kartu statistik (bon hari ini, total, lunas, masih hutang) + 10 bon terbaru
-- **Buat / Edit Bon** — simpan header terlebih dahulu, lalu tambah item; promo otomatis:
-  nama item mengandung `gorengan` → tiap 3 pcs = Rp5.000, nama mengandung
-  `donat`/`nagasari`/`lemper`/`jajanan` → tiap 2 pcs = Rp5.000;
-  urutan item bisa diatur ulang (drag reorder)
-- **Riwayat Bon** — pencarian, filter rentang tanggal, pagination
-- **Detail Bon** — preview struk + cetak Bluetooth / export PDF / download PNG / copy struk / RawBT intent
-- **Pelanggan** — daftar, tambah, edit; klik nama → riwayat bon per pelanggan
-- **Item & Kategori** — daftar item, kategori dengan tambah/edit inline
-- **Pengaturan** — pair/ganti printer Bluetooth, tes cetak, ukuran kertas (58mm / 80mm)
+## Fitur Utama
 
-## Struktur proyek
+- **Dashboard Real-Time:** Ringkasan omset harian, total bon, pengeluaran, saldo kas bersih, dan hutang belum lunas.
+- **Buat & Edit Bon:** Penomoran otomatis berurutan `INV-YYYYMMDD-NNN`, drag-and-drop urutan item, dan promo otomatis:
+  - Item mengandung `gorengan` ➔ Tiap 3 pcs = Rp 5.000.
+  - Item mengandung `donat` / `nagasari` / `lemper` / `jajanan` ➔ Tiap 2 pcs = Rp 5.000.
+- **Potongan Bon & Pengeluaran:** Item bertanda minus di bon otomatis disinkronkan ke modul Pengeluaran secara idempoten (`sync_key: bon:{tid}:{iid}`).
+- **Riwayat & Detail Bon:** Filter tanggal, status lunas/belum, preview struk thermal, share PNG struk, cetak Bluetooth, copy teks, dan cetak via RawBT.
+- **Manajemen Pelanggan & Produk:** 155 produk terindeks cepat, riwayat bon per pelanggan, dan proteksi integritas data.
+- **Laporan Rokok:** Rekapan otomatis penjualan produk kategori rokok.
+- **Ekspor Data Mandiri:** Script ekspor seluruh transaksi dan pengeluaran ke file CSV/Excel lokal.
+
+---
+
+## Struktur Proyek
 
 ```
 lib/
 ├── core/
-│   ├── api/          # ApiConfig + Dio client
+│   ├── api/          # ApiConfig + Dio client (legacy REST)
+│   ├── config/       # FeatureFlags (pengatur mode Firestore vs REST)
 │   ├── storage/      # SharedPreferences helpers
-│   ├── theme/        # AppTheme
-│   └── navigation.dart
-├── models/           # Model + fromJson/toJson
-├── providers/        # Provider state + repositories
-├── screens/
-│   ├── bon/          # buat / edit / detail / riwayat bon
-│   ├── customers/    # pelanggan
-│   ├── products/     # item & kategori
-│   └── settings/     # pengaturan printer
-├── services/         # printer_service (Bluetooth thermal)
-├── utils/            # format harga, promo
-└── widgets/          # thermal_receipt, widgets umum
+│   └── theme/        # AppTheme & AppColors
+├── models/           # Domain Model + Serialization Firestore/JSON
+├── providers/        # State Management (Provider)
+├── repositories/     # Repository Factory & Firestore Repositories
+├── screens/          # Layar UI (Dashboard, Bon, Pelanggan, Produk, Pengeluaran, Pengaturan)
+├── services/         # Printer Service & Business Logic
+└── widgets/          # Komponen UI & Preview Struk Thermal
+tools/
+├── export_csv.js     # Script ekspor data Firestore ke CSV (arsip offline)
+└── migrate/          # Script migrasi & pengujian rules Firestore
 ```
 
-## Backend / API
+---
 
-Server: `https://warunglupi.tplp004.com` (default produksi).
-Lihat `lib/core/api/api_client.dart` (class `ApiConfig`).
-
-## Pengembangan
+## Pengembangan & Pengujian
 
 ```bash
+# Pasang dependensi
 flutter pub get
-flutter analyze --no-fatal-infos
+
+# Jalankan analisis linter (0 errors, 0 warnings)
+flutter analyze --no-fatal-infos --no-fatal-warnings
+
+# Jalankan 105 unit tests (100% pass)
 flutter test
+
+# Kompilasi APK Rilis (default: Cloud Firestore)
 flutter build apk --release
+
+# Kompilasi APK dengan Rollback paksa ke REST API (bila darurat)
+flutter build apk --release --dart-define=USE_FIRESTORE_ALL=false
 ```
 
-> Tes live (butuh koneksi server) **dilewati** secara default.
-> Jalankan dengan `--dart-define=RUN_LIVE_TESTS=true` bila diperlukan.
+---
 
-## Build
+## Utilitas Ekspor Data (CSV)
 
-APK rilis: `build/app/outputs/flutter-apk/app-release.apk`
+Untuk mencadangkan seluruh data transaksi dan pengeluaran ke komputer/laptop:
 
-## CI/CD
+```bash
+node tools/export_csv.js
+```
+File CSV akan otomatis tersimpan di folder `exports/`:
+- `exports/transaksi_YYYYMMDD.csv`
+- `exports/item_transaksi_YYYYMMDD.csv`
+- `exports/pengeluaran_YYYYMMDD.csv`
 
-GitHub Actions (`.github/workflows/flutter-ci.yml`):
-`pub get` → `analyze --no-fatal-infos` → `test` → `build apk --release`,
-artifact `app-release-apk`. Dijalankan pada setiap push ke `main`.
+---
+
+## CI / CD
+
+Aplikasi terhubung ke **GitHub Actions** (`.github/workflows/flutter-ci.yml`):
+Setiap push ke branch `main` secara otomatis memvalidasi dependensi, kode (`analyze`), 105 pengujian (`test`), serta menghasilkan file instalasi APK rilis `app-release.apk` siap unduh di tab Actions.
