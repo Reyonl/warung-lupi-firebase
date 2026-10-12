@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ Future<void> main() async {
   // Inisialisasi feature flags untuk peralihan runtime/compile-time
   await FeatureFlags.init();
 
-  // Inisialisasi Firebase & Anonymous Auth jika flag Firestore aktif
+  // Inisialisasi Firebase, Offline Persistence, & Anonymous Auth
   if (FeatureFlags.useFirestoreCustomers ||
       FeatureFlags.useFirestoreCategories ||
       FeatureFlags.useFirestoreProducts ||
@@ -31,8 +32,15 @@ Future<void> main() async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      // Aktifkan offline disk persistence tak terbatas
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
       if (FirebaseAuth.instance.currentUser == null) {
-        await FirebaseAuth.instance.signInAnonymously();
+        await FirebaseAuth.instance
+            .signInAnonymously()
+            .timeout(const Duration(seconds: 3));
       }
     } catch (_) {}
   }

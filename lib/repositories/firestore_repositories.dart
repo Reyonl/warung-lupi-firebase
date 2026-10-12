@@ -12,6 +12,40 @@ import '../services/invoice_number_service.dart';
 FirebaseFirestore _db(FirebaseFirestore? custom) =>
     custom ?? FirebaseFirestore.instance;
 
+/// Helper pembacaan dokumen aman saat offline/online.
+/// Firestore melempar exception saat offline jika dokumen belum ada di cache lokal.
+Future<DocumentSnapshot<Map<String, dynamic>>?> _getDocSafe(
+  DocumentReference<Map<String, dynamic>> ref,
+) async {
+  try {
+    return await ref.get();
+  } catch (_) {
+    try {
+      return await ref.get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// Helper eksekusi query aman saat offline/online.
+/// Mengembalikan list docs dari cache atau server, atau list kosong jika gagal / offline tanpa data.
+Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _getQueryDocsSafe(
+  Query<Map<String, dynamic>> query,
+) async {
+  try {
+    final snap = await query.get();
+    return snap.docs;
+  } catch (_) {
+    try {
+      final snap = await query.get(const GetOptions(source: Source.cache));
+      return snap.docs;
+    } catch (_) {
+      return [];
+    }
+  }
+}
+
 // ==========================================
 // 1. FIRESTORE CUSTOMER REPOSITORY
 // ==========================================
@@ -31,8 +65,8 @@ class FirestoreCustomerRepository implements CustomerRepository {
       query = query.where('isActive', isEqualTo: isActive);
     }
 
-    final snap = await query.get();
-    var list = snap.docs.map((d) => Customer.fromDocument(d.id, d.data())).toList();
+    final docs = await _getQueryDocsSafe(query);
+    var list = docs.map((d) => Customer.fromDocument(d.id, d.data())).toList();
 
     if (search.trim().isNotEmpty) {
       final q = search.trim().toLowerCase();
@@ -72,21 +106,19 @@ class FirestoreCustomerRepository implements CustomerRepository {
   @override
   Future<Customer> show(int id) async {
     final docSnap = await _findCustomerDoc(id);
-    if (!docSnap.exists) {
+    if (docSnap == null || !docSnap.exists) {
       throw Exception('Pelanggan ID $id tidak ditemukan.');
     }
 
-    // Hitung jumlah transaksi
-    final txSnap = await db
-        .collection('transactions')
-        .where('customerId', isEqualTo: docSnap.id)
-        .count()
-        .get();
+    // Hitung jumlah transaksi secara aman (offline-ready tanpa .count().get())
+    final txDocs = await _getQueryDocsSafe(
+      db.collection('transactions').where('customerId', isEqualTo: docSnap.id),
+    );
 
     return Customer.fromDocument(
       docSnap.id,
       docSnap.data()!,
-      transactionsCount: txSnap.count,
+      transactionsCount: txDocs.length,
     );
   }
 
@@ -99,7 +131,7 @@ class FirestoreCustomerRepository implements CustomerRepository {
     bool? isActive,
   }) async {
     final docSnap = await _findCustomerDoc(id);
-    if (!docSnap.exists) {
+    if (docSnap == null || !docSnap.exists) {
       throw Exception('Pelanggan ID $id tidak ditemukan.');
     }
 
@@ -112,24 +144,24 @@ class FirestoreCustomerRepository implements CustomerRepository {
     };
 
     await docSnap.reference.update(updateData);
-    final fresh = await docSnap.reference.get();
-    return Customer.fromDocument(fresh.id, fresh.data()!);
+    final fresh = await _getDocSafe(docSnap.reference);
+    final currentData = Map<String, dynamic>.from(docSnap.data() ?? {});
+    currentData.addAll(updateData);
+    return Customer.fromDocument(docSnap.id, fresh?.data() ?? currentData);
   }
 
   @override
   Future<void> destroy(int id) async {
     final docSnap = await _findCustomerDoc(id);
-    if (!docSnap.exists) return;
+    if (docSnap == null || !docSnap.exists) return;
 
     // Validasi aturan: pelanggan dengan riwayat bon dilarang dihapus
-    final txSnap = await db
-        .collection('transactions')
-        .where('customerId', isEqualTo: docSnap.id)
-        .limit(1)
-        .get();
+    final txDocs = await _getQueryDocsSafe(
+      db.collection('transactions').where('customerId', isEqualTo: docSnap.id).limit(1),
+    );
 
     CustomerRulesService.validateCanDelete(
-      transactionCount: txSnap.docs.length,
+      transactionCount: txDocs.length,
     );
 
     await docSnap.reference.delete();
@@ -138,15 +170,16 @@ class FirestoreCustomerRepository implements CustomerRepository {
   @override
   Future<List<TransactionSummary>> transactions(int id) async {
     final custSnap = await _findCustomerDoc(id);
-    if (!custSnap.exists) return [];
+    if (custSnap == null || !custSnap.exists) return [];
 
-    final txSnap = await db
-        .collection('transactions')
-        .where('customerId', isEqualTo: custSnap.id)
-        .orderBy('date', descending: true)
-        .get();
+    final txDocs = await _getQueryDocsSafe(
+      db
+          .collection('transactions')
+          .where('customerId', isEqualTo: custSnap.id)
+          .orderBy('date', descending: true),
+    );
 
-    return txSnap.docs.map((d) {
+    return txDocs.map((d) {
       return TransactionSummary.fromDocument(
         d.id,
         d.data(),
@@ -155,31 +188,28 @@ class FirestoreCustomerRepository implements CustomerRepository {
     }).toList();
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> _findCustomerDoc(int id) async {
-    final custRef = _col.doc('cust_$id');
-    final custSnap = await custRef.get();
-    if (custSnap.exists) return custSnap;
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _findCustomerDoc(int id) async {
+    final custSnap = await _getDocSafe(_col.doc('cust_$id'));
+    if (custSnap != null && custSnap.exists) return custSnap;
 
-    final legacyRef = _col.doc('legacy_$id');
-    final direct = await legacyRef.get();
-    if (direct.exists) return direct;
+    final legSnap = await _getDocSafe(_col.doc('legacy_$id'));
+    if (legSnap != null && legSnap.exists) return legSnap;
 
-    final rawRef = _col.doc('$id');
-    final directRaw = await rawRef.get();
-    if (directRaw.exists) return directRaw;
+    final rawSnap = await _getDocSafe(_col.doc('$id'));
+    if (rawSnap != null && rawSnap.exists) return rawSnap;
 
-    final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
-    if (q.docs.isNotEmpty) return q.docs.first;
+    final qLeg = await _getQueryDocsSafe(_col.where('legacyId', isEqualTo: id).limit(1));
+    if (qLeg.isNotEmpty) return qLeg.first;
 
-    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
-    if (qId.docs.isNotEmpty) return qId.docs.first;
+    final qId = await _getQueryDocsSafe(_col.where('id', isEqualTo: id).limit(1));
+    if (qId.isNotEmpty) return qId.first;
 
-    final all = await _col.limit(100).get();
-    for (final d in all.docs) {
+    final all = await _getQueryDocsSafe(_col.limit(100));
+    for (final d in all) {
       if (parseEntityId(d.id, d.data()) == id) return d;
     }
 
-    return direct;
+    return null;
   }
 }
 
@@ -197,8 +227,8 @@ class FirestoreCategoryRepository implements CategoryRepository {
 
   @override
   Future<List<Category>> index() async {
-    final snap = await _col.get();
-    final list = snap.docs.map((d) => Category.fromDocument(d.id, d.data())).toList();
+    final docs = await _getQueryDocsSafe(_col);
+    final list = docs.map((d) => Category.fromDocument(d.id, d.data())).toList();
     list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return list;
   }
@@ -221,48 +251,48 @@ class FirestoreCategoryRepository implements CategoryRepository {
   @override
   Future<Category> update(int id, String name) async {
     final doc = await _findCategoryDoc(id);
-    if (!doc.exists) throw Exception('Kategori ID $id tidak ditemukan.');
+    if (doc == null || !doc.exists) throw Exception('Kategori ID $id tidak ditemukan.');
 
-    await doc.reference.update({
+    final updateData = {
       'name': name.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
-    });
-    final fresh = await doc.reference.get();
-    return Category.fromDocument(fresh.id, fresh.data()!);
+    };
+    await doc.reference.update(updateData);
+    final fresh = await _getDocSafe(doc.reference);
+    final currentData = Map<String, dynamic>.from(doc.data() ?? {});
+    currentData.addAll(updateData);
+    return Category.fromDocument(doc.id, fresh?.data() ?? currentData);
   }
 
   @override
   Future<void> destroy(int id) async {
     final doc = await _findCategoryDoc(id);
-    if (!doc.exists) return;
+    if (doc == null || !doc.exists) return;
     await doc.reference.delete();
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> _findCategoryDoc(int id) async {
-    final catRef = _col.doc('cat_$id');
-    final catSnap = await catRef.get();
-    if (catSnap.exists) return catSnap;
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _findCategoryDoc(int id) async {
+    final catSnap = await _getDocSafe(_col.doc('cat_$id'));
+    if (catSnap != null && catSnap.exists) return catSnap;
 
-    final legacyRef = _col.doc('legacy_$id');
-    final direct = await legacyRef.get();
-    if (direct.exists) return direct;
+    final legSnap = await _getDocSafe(_col.doc('legacy_$id'));
+    if (legSnap != null && legSnap.exists) return legSnap;
 
-    final rawRef = _col.doc('$id');
-    final directRaw = await rawRef.get();
-    if (directRaw.exists) return directRaw;
+    final rawSnap = await _getDocSafe(_col.doc('$id'));
+    if (rawSnap != null && rawSnap.exists) return rawSnap;
 
-    final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
-    if (q.docs.isNotEmpty) return q.docs.first;
+    final qLeg = await _getQueryDocsSafe(_col.where('legacyId', isEqualTo: id).limit(1));
+    if (qLeg.isNotEmpty) return qLeg.first;
 
-    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
-    if (qId.docs.isNotEmpty) return qId.docs.first;
+    final qId = await _getQueryDocsSafe(_col.where('id', isEqualTo: id).limit(1));
+    if (qId.isNotEmpty) return qId.first;
 
-    final all = await _col.limit(100).get();
-    for (final d in all.docs) {
+    final all = await _getQueryDocsSafe(_col.limit(100));
+    for (final d in all) {
       if (parseEntityId(d.id, d.data()) == id) return d;
     }
 
-    return direct;
+    return null;
   }
 }
 
@@ -292,8 +322,8 @@ class FirestoreProductRepository implements ProductRepository {
       query = query.where('categoryId', isEqualTo: 'legacy_$categoryId');
     }
 
-    final snap = await query.get();
-    var list = snap.docs.map((d) => Product.fromDocument(d.id, d.data())).toList();
+    final docs = await _getQueryDocsSafe(query);
+    var list = docs.map((d) => Product.fromDocument(d.id, d.data())).toList();
 
     if (search.trim().isNotEmpty) {
       final q = search.trim().toLowerCase();
@@ -339,7 +369,7 @@ class FirestoreProductRepository implements ProductRepository {
     bool? isActive,
   }) async {
     final doc = await _findProductDoc(id);
-    if (!doc.exists) throw Exception('Produk ID $id tidak ditemukan.');
+    if (doc == null || !doc.exists) throw Exception('Produk ID $id tidak ditemukan.');
 
     final data = <String, dynamic>{
       if (categoryId != null) 'categoryId': 'legacy_$categoryId',
@@ -350,42 +380,41 @@ class FirestoreProductRepository implements ProductRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     };
     await doc.reference.update(data);
-    final fresh = await doc.reference.get();
-    return Product.fromDocument(fresh.id, fresh.data()!);
+    final fresh = await _getDocSafe(doc.reference);
+    final currentData = Map<String, dynamic>.from(doc.data() ?? {});
+    currentData.addAll(data);
+    return Product.fromDocument(doc.id, fresh?.data() ?? currentData);
   }
 
   @override
   Future<void> destroy(int id) async {
     final doc = await _findProductDoc(id);
-    if (!doc.exists) return;
+    if (doc == null || !doc.exists) return;
     await doc.reference.delete();
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> _findProductDoc(int id) async {
-    final prodRef = _col.doc('prod_$id');
-    final prodSnap = await prodRef.get();
-    if (prodSnap.exists) return prodSnap;
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _findProductDoc(int id) async {
+    final prodSnap = await _getDocSafe(_col.doc('prod_$id'));
+    if (prodSnap != null && prodSnap.exists) return prodSnap;
 
-    final legacyRef = _col.doc('legacy_$id');
-    final direct = await legacyRef.get();
-    if (direct.exists) return direct;
+    final legSnap = await _getDocSafe(_col.doc('legacy_$id'));
+    if (legSnap != null && legSnap.exists) return legSnap;
 
-    final rawRef = _col.doc('$id');
-    final directRaw = await rawRef.get();
-    if (directRaw.exists) return directRaw;
+    final rawSnap = await _getDocSafe(_col.doc('$id'));
+    if (rawSnap != null && rawSnap.exists) return rawSnap;
 
-    final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
-    if (q.docs.isNotEmpty) return q.docs.first;
+    final qLeg = await _getQueryDocsSafe(_col.where('legacyId', isEqualTo: id).limit(1));
+    if (qLeg.isNotEmpty) return qLeg.first;
 
-    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
-    if (qId.docs.isNotEmpty) return qId.docs.first;
+    final qId = await _getQueryDocsSafe(_col.where('id', isEqualTo: id).limit(1));
+    if (qId.isNotEmpty) return qId.first;
 
-    final all = await _col.limit(100).get();
-    for (final d in all.docs) {
+    final all = await _getQueryDocsSafe(_col.limit(100));
+    for (final d in all) {
       if (parseEntityId(d.id, d.data()) == id) return d;
     }
 
-    return direct;
+    return null;
   }
 }
 
@@ -428,8 +457,8 @@ class FirestoreTransactionRepository implements TransactionRepository {
 
     query = query.orderBy('date', descending: true);
 
-    final snap = await query.get();
-    var list = snap.docs.map((d) => Transaction.fromDocument(d.id, d.data())).toList();
+    final docs = await _getQueryDocsSafe(query);
+    var list = docs.map((d) => Transaction.fromDocument(d.id, d.data())).toList();
 
     if (search.trim().isNotEmpty) {
       final q = search.trim().toLowerCase();
@@ -470,7 +499,7 @@ class FirestoreTransactionRepository implements TransactionRepository {
         final next = current + 1;
         t.set(counterRef, {'currentSequence': next}, SetOptions(merge: true));
         return InvoiceNumberService.formatOfficialNumber(transactionDate, next);
-      });
+      }).timeout(const Duration(milliseconds: 1500));
     } catch (_) {
       // Offline fallback: buat nomor draft sementara
       invoiceNumber = InvoiceNumberService.generateOfflineDraftNumber(transactionDate);
@@ -480,7 +509,7 @@ class FirestoreTransactionRepository implements TransactionRepository {
     String? customerName;
     try {
       final cDoc = await _findCustomerDoc(customerId);
-      if (cDoc.exists) {
+      if (cDoc != null && cDoc.exists) {
         customerName = cDoc.data()?['name'] as String?;
       }
     } catch (_) {}
@@ -509,11 +538,11 @@ class FirestoreTransactionRepository implements TransactionRepository {
   @override
   Future<Transaction> show(int id) async {
     final doc = await _findTransactionDoc(id);
-    if (!doc.exists) throw Exception('Transaksi ID $id tidak ditemukan.');
+    if (doc == null || !doc.exists) throw Exception('Transaksi ID $id tidak ditemukan.');
 
     // Muat detail items dari subkoleksi
-    final itemsSnap = await doc.reference.collection('items').get();
-    final items = itemsSnap.docs
+    final itemsDocs = await _getQueryDocsSafe(doc.reference.collection('items'));
+    final items = itemsDocs
         .map((d) => TransactionItem.fromDocument(d.id, d.data(), transactionId: id))
         .toList();
 
@@ -530,7 +559,7 @@ class FirestoreTransactionRepository implements TransactionRepository {
     String? notes,
   }) async {
     final doc = await _findTransactionDoc(id);
-    if (!doc.exists) throw Exception('Transaksi ID $id tidak ditemukan.');
+    if (doc == null || !doc.exists) throw Exception('Transaksi ID $id tidak ditemukan.');
 
     final data = <String, dynamic>{
       if (customerId != null) 'customerId': 'legacy_$customerId',
@@ -542,18 +571,20 @@ class FirestoreTransactionRepository implements TransactionRepository {
     };
 
     await doc.reference.update(data);
-    final fresh = await doc.reference.get();
-    return Transaction.fromDocument(fresh.id, fresh.data()!);
+    final fresh = await _getDocSafe(doc.reference);
+    final currentData = Map<String, dynamic>.from(doc.data() ?? {});
+    currentData.addAll(data);
+    return Transaction.fromDocument(doc.id, fresh?.data() ?? currentData);
   }
 
   @override
   Future<void> destroy(int id) async {
     final doc = await _findTransactionDoc(id);
-    if (!doc.exists) return;
+    if (doc == null || !doc.exists) return;
 
     // Hapus items subcollection
-    final items = await doc.reference.collection('items').get();
-    for (final it in items.docs) {
+    final items = await _getQueryDocsSafe(doc.reference.collection('items'));
+    for (final it in items) {
       await it.reference.delete();
       // Hapus expense turunan jika ada
       final expDocId = ExpenseSyncService.docId(transactionId: id.toString(), itemId: it.id);
@@ -575,7 +606,7 @@ class FirestoreTransactionRepository implements TransactionRepository {
     int? subtotal,
   }) async {
     final doc = await _findTransactionDoc(transactionId);
-    if (!doc.exists) throw Exception('Transaksi ID $transactionId tidak ditemukan.');
+    if (doc == null || !doc.exists) throw Exception('Transaksi ID $transactionId tidak ditemukan.');
 
     final calcSubtotal = subtotal ?? (quantity * unitPrice);
     final newItemId = DateTime.now().millisecondsSinceEpoch;
@@ -621,16 +652,20 @@ class FirestoreTransactionRepository implements TransactionRepository {
 
   Future<DocumentSnapshot<Map<String, dynamic>>?> _findItemDoc(int itemId) async {
     // 1. Cari via legacyId
-    var q = await db.collectionGroup('items').where('legacyId', isEqualTo: itemId).limit(1).get();
-    if (q.docs.isNotEmpty) return q.docs.first;
+    var q = await _getQueryDocsSafe(
+      db.collectionGroup('items').where('legacyId', isEqualTo: itemId).limit(1),
+    );
+    if (q.isNotEmpty) return q.first;
 
     // 2. Cari via id
-    q = await db.collectionGroup('items').where('id', isEqualTo: itemId).limit(1).get();
-    if (q.docs.isNotEmpty) return q.docs.first;
+    q = await _getQueryDocsSafe(
+      db.collectionGroup('items').where('id', isEqualTo: itemId).limit(1),
+    );
+    if (q.isNotEmpty) return q.first;
 
     // 3. Fallback scan item_ docId
-    final all = await db.collectionGroup('items').limit(200).get();
-    for (final d in all.docs) {
+    final all = await _getQueryDocsSafe(db.collectionGroup('items').limit(200));
+    for (final d in all) {
       if (parseEntityId(d.id, d.data()) == itemId) return d;
     }
     return null;
@@ -648,7 +683,7 @@ class FirestoreTransactionRepository implements TransactionRepository {
     int? subtotal,
   }) async {
     final itemDoc = await _findItemDoc(itemId);
-    if (itemDoc == null) throw Exception('Item ID $itemId tidak ditemukan.');
+    if (itemDoc == null || !itemDoc.exists) throw Exception('Item ID $itemId tidak ditemukan.');
 
     final oldData = itemDoc.data()!;
     final newQty = quantity ?? numFrom(oldData['quantity']);
@@ -670,15 +705,15 @@ class FirestoreTransactionRepository implements TransactionRepository {
 
     // Update / hapus sinkronisasi expense
     final txRef = itemDoc.reference.parent.parent!;
-    final txSnap = await txRef.get();
-    final txId = txSnap.id.replaceAll(RegExp(r'^(legacy_|tx_)'), '');
+    final txSnap = await _getDocSafe(txRef);
+    final txId = (txSnap?.id ?? '').replaceAll(RegExp(r'^(legacy_|tx_)'), '');
     final expDocId = ExpenseSyncService.docId(transactionId: txId, itemId: itemDoc.id);
 
     if (ExpenseSyncService.isExpenseItem(newSubtotal)) {
       final exp = ExpenseSyncService.generateExpense(
         transactionId: txId,
         itemId: itemDoc.id,
-        transactionDate: txSnap.data()?['date']?.toString() ?? '',
+        transactionDate: txSnap?.data()?['date']?.toString() ?? '',
         productName: productName ?? oldData['productName']?.toString() ?? '',
         description: description ?? oldData['description']?.toString(),
         subtotal: newSubtotal,
@@ -691,18 +726,20 @@ class FirestoreTransactionRepository implements TransactionRepository {
     }
 
     await _recalculateTotal(txRef);
-    final fresh = await itemDoc.reference.get();
-    return TransactionItem.fromDocument(fresh.id, fresh.data()!);
+    final fresh = await _getDocSafe(itemDoc.reference);
+    final currentData = Map<String, dynamic>.from(oldData);
+    currentData.addAll(data);
+    return TransactionItem.fromDocument(itemDoc.id, fresh?.data() ?? currentData);
   }
 
   @override
   Future<void> deleteItem(int itemId) async {
     final itemDoc = await _findItemDoc(itemId);
-    if (itemDoc == null) return;
+    if (itemDoc == null || !itemDoc.exists) return;
 
     final txRef = itemDoc.reference.parent.parent!;
-    final txSnap = await txRef.get();
-    final txId = txSnap.id.replaceAll(RegExp(r'^(legacy_|tx_)'), '');
+    final txSnap = await _getDocSafe(txRef);
+    final txId = (txSnap?.id ?? '').replaceAll(RegExp(r'^(legacy_|tx_)'), '');
 
     // Hapus expense turunan jika ada
     final expDocId = ExpenseSyncService.docId(transactionId: txId, itemId: itemDoc.id);
@@ -713,57 +750,54 @@ class FirestoreTransactionRepository implements TransactionRepository {
   }
 
   Future<void> _recalculateTotal(DocumentReference<Map<String, dynamic>> txRef) async {
-    final itemsSnap = await txRef.collection('items').get();
+    final itemsDocs = await _getQueryDocsSafe(txRef.collection('items'));
     int total = 0;
-    for (final it in itemsSnap.docs) {
+    for (final it in itemsDocs) {
       total += numFrom(it.data()['subtotal']);
     }
     await txRef.update({
       'totalAmount': total,
-      'itemCount': itemsSnap.docs.length,
+      'itemCount': itemsDocs.length,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> _findCustomerDoc(int id) async {
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _findCustomerDoc(int id) async {
     final cCol = db.collection('customers');
-    final cCust = await cCol.doc('cust_$id').get();
-    if (cCust.exists) return cCust;
-    final cLeg = await cCol.doc('legacy_$id').get();
-    if (cLeg.exists) return cLeg;
-    final cRaw = await cCol.doc('$id').get();
-    if (cRaw.exists) return cRaw;
+    final cCust = await _getDocSafe(cCol.doc('cust_$id'));
+    if (cCust != null && cCust.exists) return cCust;
+    final cLeg = await _getDocSafe(cCol.doc('legacy_$id'));
+    if (cLeg != null && cLeg.exists) return cLeg;
+    final cRaw = await _getDocSafe(cCol.doc('$id'));
+    if (cRaw != null && cRaw.exists) return cRaw;
 
-    final qLeg = await cCol.where('legacyId', isEqualTo: id).limit(1).get();
-    if (qLeg.docs.isNotEmpty) return qLeg.docs.first;
+    final qLeg = await _getQueryDocsSafe(cCol.where('legacyId', isEqualTo: id).limit(1));
+    if (qLeg.isNotEmpty) return qLeg.first;
 
-    final qId = await cCol.where('id', isEqualTo: id).limit(1).get();
-    if (qId.docs.isNotEmpty) return qId.docs.first;
+    final qId = await _getQueryDocsSafe(cCol.where('id', isEqualTo: id).limit(1));
+    if (qId.isNotEmpty) return qId.first;
 
-    return cLeg;
+    return null;
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> _findTransactionDoc(int id) async {
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _findTransactionDoc(int id) async {
     // 1. Direct doc ID
-    final txRef = _col.doc('tx_$id');
-    final txSnap = await txRef.get();
-    if (txSnap.exists) return txSnap;
+    final txSnap = await _getDocSafe(_col.doc('tx_$id'));
+    if (txSnap != null && txSnap.exists) return txSnap;
 
-    final legacyRef = _col.doc('legacy_$id');
-    final legacySnap = await legacyRef.get();
-    if (legacySnap.exists) return legacySnap;
+    final legSnap = await _getDocSafe(_col.doc('legacy_$id'));
+    if (legSnap != null && legSnap.exists) return legSnap;
 
-    final directRef = _col.doc('$id');
-    final directSnap = await directRef.get();
-    if (directSnap.exists) return directSnap;
+    final dirSnap = await _getDocSafe(_col.doc('$id'));
+    if (dirSnap != null && dirSnap.exists) return dirSnap;
 
     // 2. Query legacyId
-    final qLegacy = await _col.where('legacyId', isEqualTo: id).limit(1).get();
-    if (qLegacy.docs.isNotEmpty) return qLegacy.docs.first;
+    final qLegacy = await _getQueryDocsSafe(_col.where('legacyId', isEqualTo: id).limit(1));
+    if (qLegacy.isNotEmpty) return qLegacy.first;
 
     // 3. Query id
-    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
-    if (qId.docs.isNotEmpty) return qId.docs.first;
+    final qId = await _getQueryDocsSafe(_col.where('id', isEqualTo: id).limit(1));
+    if (qId.isNotEmpty) return qId.first;
 
     // 4. Pencocokan nomor invoice INV-YYYYMMDD-NNN jika id formatnya tanggal+urutan
     final idStr = id.toString();
@@ -771,17 +805,17 @@ class FirestoreTransactionRepository implements TransactionRepository {
       final datePart = idStr.substring(0, 8);
       final seqPart = int.tryParse(idStr.substring(8)) ?? 0;
       final formattedInv = 'INV-$datePart-${seqPart.toString().padLeft(3, '0')}';
-      final qInv = await _col.where('number', isEqualTo: formattedInv).limit(1).get();
-      if (qInv.docs.isNotEmpty) return qInv.docs.first;
+      final qInv = await _getQueryDocsSafe(_col.where('number', isEqualTo: formattedInv).limit(1));
+      if (qInv.isNotEmpty) return qInv.first;
     }
 
     // 5. Fallback scan
-    final all = await _col.limit(100).get();
-    for (final d in all.docs) {
+    final all = await _getQueryDocsSafe(_col.limit(100));
+    for (final d in all) {
       if (parseEntityId(d.id, d.data()) == id) return d;
     }
 
-    return legacySnap;
+    return null;
   }
 }
 
@@ -821,8 +855,8 @@ class FirestoreExpenseRepository implements ExpenseRepository {
     }
 
     query = query.orderBy('date', descending: true);
-    final snap = await query.get();
-    var list = snap.docs.map((d) => Expense.fromDocument(d.id, d.data())).toList();
+    final docs = await _getQueryDocsSafe(query);
+    var list = docs.map((d) => Expense.fromDocument(d.id, d.data())).toList();
 
     if (search != null && search.trim().isNotEmpty) {
       final q = search.trim().toLowerCase();
@@ -893,7 +927,7 @@ class FirestoreExpenseRepository implements ExpenseRepository {
     String? notes,
   }) async {
     final doc = await _findExpenseDoc(id);
-    if (!doc.exists) throw Exception('Pengeluaran ID $id tidak ditemukan.');
+    if (doc == null || !doc.exists) throw Exception('Pengeluaran ID $id tidak ditemukan.');
 
     if (doc.data()?['source'] == 'bon') {
       throw Exception('Pengeluaran dari bon tidak dapat diedit langsung.');
@@ -913,14 +947,16 @@ class FirestoreExpenseRepository implements ExpenseRepository {
     }
 
     await doc.reference.update(data);
-    final fresh = await doc.reference.get();
-    return Expense.fromDocument(fresh.id, fresh.data()!);
+    final fresh = await _getDocSafe(doc.reference);
+    final currentData = Map<String, dynamic>.from(doc.data() ?? {});
+    currentData.addAll(data);
+    return Expense.fromDocument(doc.id, fresh?.data() ?? currentData);
   }
 
   @override
   Future<void> destroy(int id) async {
     final doc = await _findExpenseDoc(id);
-    if (!doc.exists) return;
+    if (doc == null || !doc.exists) return;
 
     if (doc.data()?['source'] == 'bon') {
       throw Exception('Hapus item di bon terkait.');
@@ -929,31 +965,28 @@ class FirestoreExpenseRepository implements ExpenseRepository {
     await doc.reference.delete();
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> _findExpenseDoc(int id) async {
-    final expRef = _col.doc('exp_$id');
-    final expSnap = await expRef.get();
-    if (expSnap.exists) return expSnap;
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _findExpenseDoc(int id) async {
+    final expSnap = await _getDocSafe(_col.doc('exp_$id'));
+    if (expSnap != null && expSnap.exists) return expSnap;
 
-    final legacyRef = _col.doc('legacy_$id');
-    final direct = await legacyRef.get();
-    if (direct.exists) return direct;
+    final legSnap = await _getDocSafe(_col.doc('legacy_$id'));
+    if (legSnap != null && legSnap.exists) return legSnap;
 
-    final rawRef = _col.doc('$id');
-    final directRaw = await rawRef.get();
-    if (directRaw.exists) return directRaw;
+    final rawSnap = await _getDocSafe(_col.doc('$id'));
+    if (rawSnap != null && rawSnap.exists) return rawSnap;
 
-    final q = await _col.where('legacyId', isEqualTo: id).limit(1).get();
-    if (q.docs.isNotEmpty) return q.docs.first;
+    final qLeg = await _getQueryDocsSafe(_col.where('legacyId', isEqualTo: id).limit(1));
+    if (qLeg.isNotEmpty) return qLeg.first;
 
-    final qId = await _col.where('id', isEqualTo: id).limit(1).get();
-    if (qId.docs.isNotEmpty) return qId.docs.first;
+    final qId = await _getQueryDocsSafe(_col.where('id', isEqualTo: id).limit(1));
+    if (qId.isNotEmpty) return qId.first;
 
-    final all = await _col.limit(100).get();
-    for (final d in all.docs) {
+    final all = await _getQueryDocsSafe(_col.limit(100));
+    for (final d in all) {
       if (parseEntityId(d.id, d.data()) == id) return d;
     }
 
-    return direct;
+    return null;
   }
 }
 
@@ -972,27 +1005,27 @@ class FirestoreDashboardRepository implements DashboardRepository {
     final now = DateTime.now();
     final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-    // Coba baca dari rollup daily_summary/{todayStr}
-    final summaryDoc = await db.collection('daily_summary').doc(todayStr).get();
+    // Coba baca dari rollup daily_summary/{todayStr} dengan aman
+    final summaryDoc = await _getDocSafe(db.collection('daily_summary').doc(todayStr));
 
     int activeCustCount = 0;
     try {
-      final custSnap = await db.collection('customers').where('isActive', isEqualTo: true).count().get();
-      activeCustCount = custSnap.count ?? 0;
+      final custDocs = await _getQueryDocsSafe(
+        db.collection('customers').where('isActive', isEqualTo: true),
+      );
+      activeCustCount = custDocs.length;
     } catch (_) {}
 
     // Muat 10 transaksi terbaru
-    final recentSnap = await db
-        .collection('transactions')
-        .orderBy('date', descending: true)
-        .limit(10)
-        .get();
+    final recentDocs = await _getQueryDocsSafe(
+      db.collection('transactions').orderBy('date', descending: true).limit(10),
+    );
 
-    final recent = recentSnap.docs.map((d) {
+    final recent = recentDocs.map((d) {
       return TransactionSummary.fromDocument(d.id, d.data());
     }).toList();
 
-    if (summaryDoc.exists) {
+    if (summaryDoc != null && summaryDoc.exists && summaryDoc.data() != null) {
       final s = summaryDoc.data()!;
       return DashboardData(
         bonHariIni: numFrom(s['saleCount']),
@@ -1007,14 +1040,14 @@ class FirestoreDashboardRepository implements DashboardRepository {
       );
     }
 
-    // Fallback: agregasi langsung jika rollup belum tersedia
-    final allTxSnap = await db.collection('transactions').get();
-    final allExpSnap = await db.collection('expenses').get();
+    // Fallback: agregasi langsung jika rollup belum tersedia atau saat OFFLINE
+    final allTxDocs = await _getQueryDocsSafe(db.collection('transactions'));
+    final allExpDocs = await _getQueryDocsSafe(db.collection('expenses'));
 
     final stats = DashboardAggregateService.computeDashboardStats(
       todayDateStr: todayStr,
-      allTransactions: allTxSnap.docs.map((d) => d.data()).toList(),
-      allExpenses: allExpSnap.docs.map((d) => d.data()).toList(),
+      allTransactions: allTxDocs.map((d) => d.data()).toList(),
+      allExpenses: allExpDocs.map((d) => d.data()).toList(),
       activeCustomersCount: activeCustCount,
     );
 
@@ -1050,17 +1083,16 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
     String? search,
     int page = 1,
   }) async {
-    // Ambil transaksi completed dari Firestore
-    final txSnap = await db
-        .collection('transactions')
-        .where('status', isEqualTo: 'completed')
-        .get();
+    // Ambil transaksi completed dari Firestore secara aman
+    final txDocs = await _getQueryDocsSafe(
+      db.collection('transactions').where('status', isEqualTo: 'completed'),
+    );
 
     final txList = <Map<String, dynamic>>[];
-    for (final doc in txSnap.docs) {
+    for (final doc in txDocs) {
       final txData = Map<String, dynamic>.from(doc.data());
-      final itemsSnap = await doc.reference.collection('items').get();
-      txData['items'] = itemsSnap.docs.map((d) => d.data()).toList();
+      final itemsDocs = await _getQueryDocsSafe(doc.reference.collection('items'));
+      txData['items'] = itemsDocs.map((d) => d.data()).toList();
       txList.add(txData);
     }
 
@@ -1077,17 +1109,19 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
 
   @override
   Future<BonCigaretteSummary> bonSummary(int transactionId) async {
-    final direct = await db.collection('transactions').doc('legacy_$transactionId').get();
-    if (!direct.exists) {
+    final direct = await _getDocSafe(db.collection('transactions').doc('legacy_$transactionId')) ??
+        await _getDocSafe(db.collection('transactions').doc('tx_$transactionId')) ??
+        await _getDocSafe(db.collection('transactions').doc('$transactionId'));
+    if (direct == null || !direct.exists) {
       return BonCigaretteSummary(items: [], totalQuantity: 0, totalAmount: 0);
     }
 
-    final itemsSnap = await direct.reference.collection('items').get();
+    final itemsDocs = await _getQueryDocsSafe(direct.reference.collection('items'));
     int qty = 0;
     int amount = 0;
     final items = <CigaretteItemRow>[];
 
-    for (final doc in itemsSnap.docs) {
+    for (final doc in itemsDocs) {
       final d = doc.data();
       final pName = (d['productName'] ?? d['product_name'] ?? '') as String;
       final desc = d['description'] as String?;

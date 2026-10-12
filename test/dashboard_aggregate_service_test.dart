@@ -80,5 +80,62 @@ void main() {
       expect(stats.pengeluaranTotal, 60000);
       expect(stats.totalPelanggan, 38);
     });
+
+    test('computeDashboardStats handles completely empty offline cache without crashing', () {
+      final stats = DashboardAggregateService.computeDashboardStats(
+        todayDateStr: '2026-10-13',
+        allTransactions: [],
+        allExpenses: [],
+        activeCustomersCount: 0,
+      );
+
+      expect(stats.bonHariIni, 0);
+      expect(stats.totalHariIni, 0);
+      expect(stats.lunasHariIni, 0);
+      expect(stats.lunasTotal, 0);
+      expect(stats.masihHutang, 0);
+      expect(stats.pengeluaranHariIni, 0);
+      expect(stats.pengeluaranTotal, 0);
+      expect(stats.totalPelanggan, 0);
+    });
+
+    test('computeDashboardStats handles offline transactions with discounts and mixed keys', () {
+      final allTransactions = [
+        {
+          'date': '2026-10-13',
+          'totalAmount': 50000,
+          'paymentStatus': 'paid',
+        },
+        {
+          'date': '2026-10-13',
+          'totalAmount': 20000,
+          'paymentStatus': 'unpaid',
+        },
+      ];
+
+      final allExpenses = [
+        {
+          'date': '2026-10-13',
+          'amount': 10000,
+          'source': 'bon',
+        },
+      ];
+
+      final stats = DashboardAggregateService.computeDashboardStats(
+        todayDateStr: '2026-10-13',
+        allTransactions: allTransactions,
+        allExpenses: allExpenses,
+        activeCustomersCount: 12,
+      );
+
+      expect(stats.bonHariIni, 2);
+      expect(stats.totalHariIni, 70000);
+      expect(stats.lunasHariIni, 50000);
+      expect(stats.lunasTotal, 50000);
+      expect(stats.masihHutang, 20000);
+      expect(stats.pengeluaranHariIni, 10000);
+      expect(stats.pengeluaranTotal, 10000);
+      expect(stats.totalPelanggan, 12);
+    });
   });
 }
