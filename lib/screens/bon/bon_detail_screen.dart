@@ -15,7 +15,7 @@ import '../../core/api/api_client.dart';
 import '../../core/storage/prefs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/models.dart';
-import '../../providers/repositories.dart';
+import '../../repositories/repository_factory.dart';
 import '../../services/printer_service.dart';
 import '../../utils/format.dart';
 import '../../widgets/thermal_receipt.dart';
@@ -96,7 +96,7 @@ class _BonDetailScreenState extends State<BonDetailScreen> {
       // layar ini butuh transaksi yang sedang dilihat (widget.transactionId),
       // bukan draft yang tertahan di provider. Panggilan itu hanya menambah
       // 1 request HTTP yang tidak diperlukan.
-      final t = await TransactionRepository().show(widget.transactionId);
+      final t = await RepositoryFactory.transactionRepository().show(widget.transactionId);
       if (!mounted) return;
       setState(() {
         _t = t;
@@ -104,7 +104,7 @@ class _BonDetailScreenState extends State<BonDetailScreen> {
       });
       // Ringkasan rokok dimuat terpisah (fire-and-forget, seperti web):
       // kegagalan diam saja → section tidak tampil.
-      CigaretteReportRepository()
+      RepositoryFactory.cigaretteReportRepository()
           .bonSummary(widget.transactionId)
           .then((r) {
             if (mounted) setState(() => _rokok = r);

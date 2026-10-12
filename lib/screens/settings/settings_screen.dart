@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/config/feature_flags.dart';
 import '../../core/storage/prefs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/printer_service.dart';
@@ -42,6 +43,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _serverError;
   String? _serverSuccess;
 
+  // Feature flags Firestore
+  Map<String, bool?> _firestoreFlags = {};
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final name = await Prefs.getPrinterName();
     final id = await Prefs.getPrinterId();
     final server = await Prefs.getApiBaseUrl();
+    final flags = await Prefs.getFirestoreFlags();
     if (!mounted) return;
     setState(() {
       _size = size;
@@ -66,8 +71,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _printerId = id;
       // Kosong = memakai default produksi (ditampilkan sebagai hint).
       _serverCtrl.text = server;
+      _firestoreFlags = flags;
       _loadingPrefs = false;
     });
+  }
+
+  Future<void> _toggleFirestoreFlag(String key, bool val) async {
+    await Prefs.setFirestoreFlag(key, val);
+    await FeatureFlags.init();
+    final flags = await Prefs.getFirestoreFlags();
+    if (!mounted) return;
+    setState(() => _firestoreFlags = flags);
+    showToast(
+      context,
+      'Flag $key diubah menjadi ${val ? "Firestore" : "REST (Laravel)"}. Restart aplikasi untuk perubahan penuh.',
+    );
   }
 
   /// Simpan alamat server. Kosong → kembali ke default produksi.
@@ -273,6 +291,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 _SizeCard(size: _size, onChanged: _changeSize),
+                const SizedBox(height: 16),
+                _FirestoreFlagsCard(
+                  flags: _firestoreFlags,
+                  onToggle: _toggleFirestoreFlag,
+                ),
               ],
             ],
           ),
@@ -657,3 +680,91 @@ class _SizeCard extends StatelessWidget {
     );
   }
 }
+
+class _FirestoreFlagsCard extends StatelessWidget {
+  final Map<String, bool?> flags;
+  final void Function(String key, bool val) onToggle;
+
+  const _FirestoreFlagsCard({
+    required this.flags,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final modules = [
+      {'key': 'all', 'label': 'Semua Modul (Override Global)'},
+      {'key': 'customers', 'label': 'Pelanggan (Customers)'},
+      {'key': 'categories', 'label': 'Kategori (Categories)'},
+      {'key': 'products', 'label': 'Produk (Products)'},
+      {'key': 'transactions', 'label': 'Transaksi & Bon (Transactions)'},
+      {'key': 'expenses', 'label': 'Pengeluaran (Expenses)'},
+      {'key': 'dashboard', 'label': 'Dashboard & Ringkasan Harian'},
+      {'key': 'cigarettes', 'label': 'Laporan Rokok (Cigarettes)'},
+    ];
+
+    return Material(
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.cloud_sync, size: 20, color: AppColors.brand600),
+                SizedBox(width: 8),
+                Text(
+                  'MIGRASI FIREBASE (STAGING FEATURE FLAGS)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: AppColors.gray800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Alihkan komunikasi data per modul dari backend Laravel (REST API) ke Google Cloud Firestore (Staging). Perubahan disimpan ke preferensi lokal.',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+            const Divider(height: 24),
+            ...modules.map((m) {
+              final key = m['key']!;
+              final label = m['label']!;
+              final isEnabled = flags[key] == true;
+              return SwitchListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: key == 'all' ? FontWeight.w700 : FontWeight.normal,
+                    color: key == 'all' ? AppColors.brand600 : AppColors.textMain,
+                  ),
+                ),
+                subtitle: Text(
+                  isEnabled ? 'Firestore Staging' : 'Laravel REST API',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isEnabled ? Colors.green.shade700 : AppColors.textMuted,
+                  ),
+                ),
+                value: isEnabled,
+                onChanged: (val) => onToggle(key, val),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

@@ -1,16 +1,37 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/api/api_client.dart';
+import 'core/config/feature_flags.dart';
 import 'core/navigation.dart';
 import 'core/storage/prefs.dart';
 import 'core/theme/app_theme.dart';
+import 'firebase_options.dart';
 import 'providers/providers.dart';
-import 'providers/repositories.dart';
+import 'repositories/repository_factory.dart';
 import 'screens/home_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi feature flags untuk peralihan runtime/compile-time
+  await FeatureFlags.init();
+
+  // Inisialisasi Firebase jika flag Firestore aktif
+  if (FeatureFlags.useFirestoreCustomers ||
+      FeatureFlags.useFirestoreCategories ||
+      FeatureFlags.useFirestoreProducts ||
+      FeatureFlags.useFirestoreTransactions ||
+      FeatureFlags.useFirestoreExpenses ||
+      FeatureFlags.useFirestoreDashboard ||
+      FeatureFlags.useFirestoreCigarettes) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (_) {}
+  }
 
   // Terapkan alamat server yang disimpan pengguna (bila ada) SEBELUM widget
   // pertama dibangun, supaya semua request memakai server yang benar.
@@ -33,28 +54,28 @@ class RekapanWarungApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => DashboardProvider(DashboardRepository()),
+          create: (_) => DashboardProvider(RepositoryFactory.dashboardRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => CustomerProvider(CustomerRepository()),
+          create: (_) => CustomerProvider(RepositoryFactory.customerRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => CategoryProvider(CategoryRepository()),
+          create: (_) => CategoryProvider(RepositoryFactory.categoryRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => ProductProvider(ProductRepository()),
+          create: (_) => ProductProvider(RepositoryFactory.productRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => TransactionListProvider(TransactionRepository()),
+          create: (_) => TransactionListProvider(RepositoryFactory.transactionRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => CigaretteReportProvider(CigaretteReportRepository()),
+          create: (_) => CigaretteReportProvider(RepositoryFactory.cigaretteReportRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => ExpenseProvider(ExpenseRepository()),
+          create: (_) => ExpenseProvider(RepositoryFactory.expenseRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => BonDraftProvider(TransactionRepository()),
+          create: (_) => BonDraftProvider(RepositoryFactory.transactionRepository()),
         ),
       ],
       child: MaterialApp(

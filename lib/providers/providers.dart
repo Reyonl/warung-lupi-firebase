@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api/api_client.dart';
 import '../models/models.dart';
+import '../repositories/repository_factory.dart';
 import '../utils/format.dart';
 import 'repositories.dart';
 
@@ -187,8 +188,8 @@ class CategoryProvider extends ChangeNotifier with LoadableState {
 
 /// Product provider.
 class ProductProvider extends ChangeNotifier with LoadableState {
-  ProductProvider(this._repo) {
-    _catRepo = CategoryRepository();
+  ProductProvider(this._repo, [CategoryRepository? catRepo]) {
+    _catRepo = catRepo ?? RepositoryFactory.categoryRepository();
   }
 
   final ProductRepository _repo;

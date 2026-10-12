@@ -53,4 +53,29 @@ class Prefs {
     if (name != null) await p.setString(_printerName, name);
     if (id != null) await p.setString(_printerId, id);
   }
+
+  // Feature flags storage (prefix: 'flag_firestore_')
+  static Future<Map<String, bool?>> getFirestoreFlags() async {
+    final p = await SharedPreferences.getInstance();
+    return {
+      'all': p.getBool('flag_firestore_all'),
+      'customers': p.getBool('flag_firestore_customers'),
+      'categories': p.getBool('flag_firestore_categories'),
+      'products': p.getBool('flag_firestore_products'),
+      'transactions': p.getBool('flag_firestore_transactions'),
+      'expenses': p.getBool('flag_firestore_expenses'),
+      'dashboard': p.getBool('flag_firestore_dashboard'),
+      'cigarettes': p.getBool('flag_firestore_cigarettes'),
+    };
+  }
+
+  static Future<void> setFirestoreFlag(String key, bool? enabled) async {
+    final p = await SharedPreferences.getInstance();
+    final prefKey = 'flag_firestore_$key';
+    if (enabled == null) {
+      await p.remove(prefKey);
+    } else {
+      await p.setBool(prefKey, enabled);
+    }
+  }
 }

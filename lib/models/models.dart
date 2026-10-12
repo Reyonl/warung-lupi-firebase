@@ -51,6 +51,25 @@ class Category {
   }
 
   Map<String, dynamic> toJson() => {'name': name};
+
+  Map<String, dynamic> toDocument() => {
+    'name': name,
+    if (id > 0) 'legacyId': id,
+  };
+
+  factory Category.fromDocument(String docId, Map<String, dynamic> doc) {
+    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
+    if (parsedId == 0 && docId.startsWith('legacy_')) {
+      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
+    }
+    return Category(
+      id: parsedId,
+      name: (doc['name'] ?? '') as String,
+      productsCount: numFromOrNull(
+        doc['productsCount'] ?? doc['products_count'],
+      ),
+    );
+  }
 }
 
 /// Model Produk/Item — mirror tabel `products`.
@@ -94,6 +113,44 @@ class Product {
     'unit': unit,
     'is_active': isActive,
   };
+
+  Map<String, dynamic> toDocument() => {
+    'categoryId': categoryId != null ? 'legacy_$categoryId' : null,
+    'name': name,
+    'defaultPrice': defaultPrice,
+    'unit': unit,
+    'isActive': isActive,
+    if (id > 0) 'legacyId': id,
+  };
+
+  factory Product.fromDocument(
+    String docId,
+    Map<String, dynamic> doc, {
+    Category? category,
+  }) {
+    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
+    if (parsedId == 0 && docId.startsWith('legacy_')) {
+      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
+    }
+    final catRaw = doc['categoryId'] ?? doc['category_id'];
+    int? catId;
+    if (catRaw is int) {
+      catId = catRaw;
+    } else if (catRaw is String) {
+      catId = int.tryParse(catRaw.replaceFirst('legacy_', ''));
+    }
+    return Product(
+      id: parsedId,
+      categoryId: catId,
+      name: (doc['name'] ?? '') as String,
+      defaultPrice: numFrom(doc['defaultPrice'] ?? doc['default_price']),
+      unit: (doc['unit'] ?? 'pcs') as String,
+      isActive: doc['isActive'] == true ||
+          doc['is_active'] == true ||
+          doc['is_active'] == 1,
+      category: category,
+    );
+  }
 }
 
 /// Model Pelanggan — mirror tabel `customers`.
@@ -130,6 +187,36 @@ class Customer {
     'phone': (phone == null || phone!.isEmpty) ? null : phone,
     'notes': (notes == null || notes!.isEmpty) ? null : notes,
   };
+
+  Map<String, dynamic> toDocument() => {
+    'name': name,
+    'phone': (phone == null || phone!.isEmpty) ? null : phone,
+    'notes': (notes == null || notes!.isEmpty) ? null : notes,
+    'isActive': isActive,
+    if (id > 0) 'legacyId': id,
+  };
+
+  factory Customer.fromDocument(
+    String docId,
+    Map<String, dynamic> doc, {
+    int? transactionsCount,
+  }) {
+    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
+    if (parsedId == 0 && docId.startsWith('legacy_')) {
+      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
+    }
+    return Customer(
+      id: parsedId,
+      name: (doc['name'] ?? '') as String,
+      phone: doc['phone'] as String?,
+      notes: doc['notes'] as String?,
+      isActive: doc['isActive'] == true ||
+          doc['is_active'] == true ||
+          doc['is_active'] == 1,
+      transactionsCount: transactionsCount ??
+          numFromOrNull(doc['transactionsCount'] ?? doc['transactions_count']),
+    );
+  }
 }
 
 /// Model Item Bon — mirror tabel `transaction_items`.
@@ -181,6 +268,50 @@ class TransactionItem {
     'unit_price': unitPrice,
     'subtotal': subtotal,
   };
+
+  Map<String, dynamic> toDocument() => {
+    'productId': productId != null ? 'legacy_$productId' : null,
+    'productName': productName,
+    'description': (description == null || description!.isEmpty)
+        ? null
+        : description,
+    'quantity': quantity,
+    'unit': unit,
+    'unitPrice': unitPrice,
+    'subtotal': subtotal,
+    if (id > 0) 'legacyId': id,
+  };
+
+  factory TransactionItem.fromDocument(
+    String docId,
+    Map<String, dynamic> doc, {
+    int? transactionId,
+  }) {
+    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
+    if (parsedId == 0 && docId.startsWith('legacy_')) {
+      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
+    }
+    final prodRaw = doc['productId'] ?? doc['product_id'];
+    int? prodId;
+    if (prodRaw is int) {
+      prodId = prodRaw;
+    } else if (prodRaw is String) {
+      prodId = int.tryParse(prodRaw.replaceFirst('legacy_', ''));
+    }
+    return TransactionItem(
+      id: parsedId,
+      transactionId: transactionId ??
+          numFromOrNull(doc['transactionId'] ?? doc['transaction_id']),
+      productId: prodId,
+      productName:
+          (doc['productName'] ?? doc['product_name'] ?? '') as String,
+      description: doc['description'] as String?,
+      quantity: numFrom(doc['quantity'], fallback: 1),
+      unit: (doc['unit'] ?? 'pcs') as String,
+      unitPrice: numFrom(doc['unitPrice'] ?? doc['unit_price']),
+      subtotal: numFrom(doc['subtotal']),
+    );
+  }
 }
 
 /// Model Transaksi/Bon — mirror tabel `transactions`.
@@ -266,6 +397,57 @@ class Transaction {
                 .map(TransactionItem.fromJson)
                 .toList()
           : [],
+    );
+  }
+
+  Map<String, dynamic> toDocument() => {
+    'customerId': customerId != null ? 'legacy_$customerId' : null,
+    'customerName': customer?.name,
+    'number': transactionNumber,
+    'date': transactionDate,
+    'totalAmount': totalAmount,
+    'status': status,
+    'paymentStatus': paymentStatus,
+    'notes': (notes == null || notes!.isEmpty) ? null : notes,
+    'itemCount': items.length,
+    if (id > 0) 'legacyId': id,
+  };
+
+  factory Transaction.fromDocument(
+    String docId,
+    Map<String, dynamic> doc, {
+    Customer? customer,
+    List<TransactionItem> items = const [],
+  }) {
+    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
+    if (parsedId == 0 && docId.startsWith('legacy_')) {
+      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
+    }
+    final custRaw = doc['customerId'] ?? doc['customer_id'];
+    int? custId;
+    if (custRaw is int) {
+      custId = custRaw;
+    } else if (custRaw is String) {
+      custId = int.tryParse(custRaw.replaceFirst('legacy_', ''));
+    }
+    final rawDate =
+        (doc['date'] ?? doc['transaction_date'] ?? '').toString();
+    final dateStr = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+
+    return Transaction(
+      id: parsedId,
+      customerId: custId,
+      transactionNumber:
+          (doc['number'] ?? doc['transaction_number'] ?? '') as String,
+      transactionDate: dateStr,
+      totalAmount: numFrom(doc['totalAmount'] ?? doc['total_amount']),
+      status: (doc['status'] ?? 'draft') as String,
+      paymentStatus:
+          (doc['paymentStatus'] ?? doc['payment_status'] ?? 'unpaid')
+              as String,
+      notes: doc['notes'] as String?,
+      customer: customer,
+      items: items,
     );
   }
 }
@@ -538,6 +720,48 @@ class Expense {
     'amount': amount,
     if (notes != null && notes!.isNotEmpty) 'notes': notes,
   };
+
+  Map<String, dynamic> toDocument() => {
+    'date': expenseDate,
+    'title': title,
+    if (category != null && category!.isNotEmpty) 'category': category,
+    'amount': amount,
+    'source': source,
+    if (transactionId != null) 'transactionId': 'legacy_$transactionId',
+    if (transactionNumber != null) 'transactionNumber': transactionNumber,
+    if (notes != null && notes!.isNotEmpty) 'notes': notes,
+    if (id > 0) 'legacyId': id,
+  };
+
+  factory Expense.fromDocument(String docId, Map<String, dynamic> doc) {
+    int parsedId = numFrom(doc['legacyId'] ?? doc['id']);
+    if (parsedId == 0 && docId.startsWith('legacy_')) {
+      parsedId = int.tryParse(docId.replaceFirst('legacy_', '')) ?? 0;
+    }
+    final rawDate =
+        (doc['date'] ?? doc['expense_date'] ?? '').toString();
+    final dateStr = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+
+    final txRaw = doc['transactionId'] ?? doc['transaction_id'];
+    int? txId;
+    if (txRaw is int) {
+      txId = txRaw;
+    } else if (txRaw is String) {
+      txId = int.tryParse(txRaw.replaceFirst('legacy_', ''));
+    }
+
+    return Expense(
+      id: parsedId,
+      expenseDate: dateStr,
+      title: (doc['title'] ?? '') as String,
+      category: doc['category'] as String?,
+      amount: numFrom(doc['amount']),
+      source: (doc['source'] ?? 'manual') as String,
+      transactionId: txId,
+      transactionNumber: doc['transactionNumber'] as String?,
+      notes: doc['notes'] as String?,
+    );
+  }
 }
 
 /// Ringkasan pengeluaran — `summary` dari `GET /api/expenses`

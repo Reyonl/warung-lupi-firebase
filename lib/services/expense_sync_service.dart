@@ -31,7 +31,7 @@ class SyncedExpense {
         'transactionId': transactionId,
         'syncKey': syncKey,
         'notes': notes,
-        if (legacyId != null) 'legacyId': legacyId!,
+        if (legacyId != null) 'legacyId': legacyId,
       };
 }
 

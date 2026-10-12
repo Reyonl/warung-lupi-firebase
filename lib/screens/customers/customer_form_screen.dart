@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/providers.dart';
-import '../../providers/repositories.dart';
+import '../../repositories/repository_factory.dart';
 import '../../widgets/widgets.dart';
 
 /// Form Pelanggan — meniru `pages/customers/CustomerForm.jsx`.
@@ -52,7 +52,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
       _serverError = null;
     });
     try {
-      final repo = CustomerRepository();
+      final repo = RepositoryFactory.customerRepository();
       final c = await repo.show(widget.customerId!);
       if (!mounted) return;
       _name.text = c.name;
