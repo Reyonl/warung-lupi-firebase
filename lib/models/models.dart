@@ -159,7 +159,7 @@ class Product {
     if (catRaw is int) {
       catId = catRaw;
     } else if (catRaw is String) {
-      catId = int.tryParse(catRaw.replaceFirst('legacy_', ''));
+      catId = int.tryParse(catRaw.replaceFirst(RegExp(r'^(legacy_|cat_)'), ''));
     }
     return Product(
       id: parsedId,
@@ -311,7 +311,7 @@ class TransactionItem {
     if (prodRaw is int) {
       prodId = prodRaw;
     } else if (prodRaw is String) {
-      prodId = int.tryParse(prodRaw.replaceFirst('legacy_', ''));
+      prodId = int.tryParse(prodRaw.replaceFirst(RegExp(r'^(legacy_|prod_)'), ''));
     }
     return TransactionItem(
       id: parsedId,
@@ -440,7 +440,7 @@ class Transaction {
     if (custRaw is int) {
       custId = custRaw;
     } else if (custRaw is String) {
-      custId = int.tryParse(custRaw.replaceFirst('legacy_', ''));
+      custId = int.tryParse(custRaw.replaceFirst(RegExp(r'^(legacy_|cust_)'), ''));
     }
     final rawDate =
         (doc['date'] ?? doc['transaction_date'] ?? '').toString();

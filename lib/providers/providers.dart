@@ -123,6 +123,13 @@ class CustomerProvider extends ChangeNotifier with LoadableState {
     }
     await load();
   }
+
+  Future<Customer> quickCreate(String name) async {
+    final c = await _repo.store(name: name);
+    customers = [c, ...customers];
+    notifyListeners();
+    return c;
+  }
 }
 
 /// Category provider.

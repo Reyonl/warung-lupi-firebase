@@ -11,6 +11,7 @@ class CustomerSearchField extends StatefulWidget {
   final int? initialCustomerId;
   final String? initialCustomerName;
   final ValueChanged<int?> onSelected;
+  final ValueChanged<String>? onTextChanged;
   final VoidCallback? onClear;
 
   /// Nonaktifkan input — dipakai saat header sudah tersimpan (pelanggan
@@ -22,6 +23,7 @@ class CustomerSearchField extends StatefulWidget {
     this.initialCustomerId,
     this.initialCustomerName,
     required this.onSelected,
+    this.onTextChanged,
     this.onClear,
     this.enabled = true,
   });
@@ -75,7 +77,8 @@ class _CustomerSearchFieldState extends State<CustomerSearchField> {
   @override
   Widget build(BuildContext context) {
     final customerProvider = context.watch<CustomerProvider>();
-    final query = _controller.text.trim().toLowerCase();
+    final rawQuery = _controller.text.trim();
+    final query = rawQuery.toLowerCase();
 
     // Filter real-time dari list customer yang sudah dimuat provider (prefix / contains match)
     final filtered = customerProvider.customers
@@ -87,6 +90,10 @@ class _CustomerSearchFieldState extends State<CustomerSearchField> {
         })
         .take(10)
         .toList();
+
+    final canQuickCreate =
+        rawQuery.isNotEmpty &&
+        !filtered.any((c) => c.name.trim().toLowerCase() == query);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,6 +116,7 @@ class _CustomerSearchFieldState extends State<CustomerSearchField> {
                       setState(() {
                         _isDropdownOpen = false;
                       });
+                      widget.onTextChanged?.call('');
                       widget.onSelected(null);
                       widget.onClear?.call();
                     },
@@ -140,6 +148,7 @@ class _CustomerSearchFieldState extends State<CustomerSearchField> {
             ),
           ),
           onChanged: (val) {
+            widget.onTextChanged?.call(val);
             setState(() {
               _isDropdownOpen = true;
             });
@@ -189,29 +198,131 @@ class _CustomerSearchFieldState extends State<CustomerSearchField> {
                     ),
                   )
                 : filtered.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(
-                      child: Text(
-                        'Tidak ada pelanggan ditemukan',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 13,
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(
+                          child: Text(
+                            'Tidak ada pelanggan ditemukan',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      if (canQuickCreate)
+                        InkWell(
+                          onTap: () async {
+                            final created = await customerProvider.quickCreate(
+                              rawQuery,
+                            );
+                            if (!mounted) return;
+                            _controller.text = created.name;
+                            setState(() {
+                              _isDropdownOpen = false;
+                            });
+                            widget.onTextChanged?.call(created.name);
+                            widget.onSelected(created.id);
+                            _focusNode.unfocus();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                top: BorderSide(color: AppColors.gray100),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.person_add_alt_1_outlined,
+                                  size: 16,
+                                  color: AppColors.brand600,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    '+ Tambah Pelanggan "$rawQuery"',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.brand600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   )
                 : ListView.builder(
                     shrinkWrap: true,
-                    itemCount: filtered.length,
+                    itemCount: filtered.length + (canQuickCreate ? 1 : 0),
                     itemBuilder: (context, index) {
-                      final cust = filtered[index];
+                      if (canQuickCreate && index == 0) {
+                        return InkWell(
+                          onTap: () async {
+                            final created = await customerProvider.quickCreate(
+                              rawQuery,
+                            );
+                            if (!mounted) return;
+                            _controller.text = created.name;
+                            setState(() {
+                              _isDropdownOpen = false;
+                            });
+                            widget.onTextChanged?.call(created.name);
+                            widget.onSelected(created.id);
+                            _focusNode.unfocus();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: AppColors.gray100),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.person_add_alt_1_outlined,
+                                  size: 16,
+                                  color: AppColors.brand600,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    '+ Tambah Pelanggan "$rawQuery"',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.brand600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      final custIdx = canQuickCreate ? index - 1 : index;
+                      final cust = filtered[custIdx];
                       return InkWell(
                         onTap: () {
                           _controller.text = cust.name;
                           setState(() {
                             _isDropdownOpen = false;
                           });
+                          widget.onTextChanged?.call(cust.name);
                           widget.onSelected(cust.id);
                           _focusNode.unfocus();
                         },
@@ -221,7 +332,7 @@ class _CustomerSearchFieldState extends State<CustomerSearchField> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            border: index < filtered.length - 1
+                            border: custIdx < filtered.length - 1
                                 ? const Border(
                                     bottom: BorderSide(
                                       color: AppColors.gray100,

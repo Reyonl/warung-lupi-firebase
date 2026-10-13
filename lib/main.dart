@@ -40,7 +40,7 @@ Future<void> main() async {
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance
             .signInAnonymously()
-            .timeout(const Duration(seconds: 3));
+            .timeout(const Duration(milliseconds: 800));
       }
     } catch (_) {}
   }

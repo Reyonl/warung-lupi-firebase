@@ -31,6 +31,7 @@ class BonCreateScreen extends StatefulWidget {
 class _BonCreateScreenState extends State<BonCreateScreen> {
   // Header form
   int? _customerId;
+  String _customerTypedName = '';
   DateTime _transactionDate = DateTime.now();
   final _notesCtrl = TextEditingController();
 
@@ -83,8 +84,12 @@ class _BonCreateScreenState extends State<BonCreateScreen> {
     _loadingRef = true;
     setState(() {});
     try {
+      custProv.filterActive = true;
+      prodProv.search = '';
+      prodProv.filterCategory = null;
+      prodProv.filterActive = true;
       await Future.wait([
-        custProv.load(),
+        custProv.load(resetSearch: true),
         prodProv.loadCategories(),
         prodProv.load(),
       ]);
@@ -141,6 +146,23 @@ class _BonCreateScreenState extends State<BonCreateScreen> {
   // ---- Header ----
   Future<void> _saveHeader() async {
     final prov = context.read<BonDraftProvider>();
+    final custProv = context.read<CustomerProvider>();
+    if (_customerId == null && _customerTypedName.trim().isNotEmpty) {
+      final typed = _customerTypedName.trim();
+      final match = custProv.customers
+          .where((c) => c.name.trim().toLowerCase() == typed.toLowerCase())
+          .firstOrNull;
+      if (match != null) {
+        _customerId = match.id;
+        prov.customerName = match.name;
+      } else {
+        try {
+          final created = await custProv.quickCreate(typed);
+          _customerId = created.id;
+          prov.customerName = created.name;
+        } catch (_) {}
+      }
+    }
     if (_customerId == null) {
       setState(() => _error = 'Pelanggan dan tanggal wajib diisi.');
       return;
@@ -382,6 +404,10 @@ class _BonCreateScreenState extends State<BonCreateScreen> {
                         headerSaved: prov.headerSaved,
                         onCustomerChanged: (id) =>
                             setState(() => _customerId = id),
+                        onCustomerTextChanged: (val) {
+                          _customerTypedName = val;
+                          _customerId = null;
+                        },
                         onDateChanged: (d) =>
                             setState(() => _transactionDate = d),
                         onSaveHeader: _saveHeader,
@@ -544,6 +570,7 @@ class _HeaderCard extends StatelessWidget {
   final DateTime date;
   final bool headerSaved;
   final ValueChanged<int?> onCustomerChanged;
+  final ValueChanged<String>? onCustomerTextChanged;
   final ValueChanged<DateTime> onDateChanged;
   final VoidCallback onSaveHeader;
   final bool saving;
@@ -556,6 +583,7 @@ class _HeaderCard extends StatelessWidget {
     required this.date,
     required this.headerSaved,
     required this.onCustomerChanged,
+    this.onCustomerTextChanged,
     required this.onDateChanged,
     required this.onSaveHeader,
     required this.saving,
@@ -596,6 +624,7 @@ class _HeaderCard extends StatelessWidget {
                     initialCustomerName: _customerDisplayName,
                     enabled: !headerSaved,
                     onSelected: (id) => onCustomerChanged(id),
+                    onTextChanged: onCustomerTextChanged,
                     onClear: () => onCustomerChanged(null),
                   ),
                 );
