@@ -420,6 +420,26 @@ class FirestoreCustomerRepository implements CustomerRepository {
     };
 
     await _updateDocSafe(_col.doc(entry.id), updateData, colName: 'customers');
+
+    // Jika nama pelanggan diubah, sinkronkan juga customerName di transaksi milik pelanggan ini
+    if (name != null) {
+      final newName = name.trim();
+      final allTx = await _getColEntries(
+        db.collection('transactions'),
+        preferCache: true,
+      );
+      for (final txEntry in allTx) {
+        final tx = Transaction.fromDocument(txEntry.id, txEntry.data);
+        if (tx.customerId == id || txEntry.data['customerId'] == entry.id) {
+          _updateDocSafe(
+            db.collection('transactions').doc(txEntry.id),
+            {'customerName': newName},
+            colName: 'transactions',
+          ).ignore();
+        }
+      }
+    }
+
     final merged = {...entry.data, ...updateData};
     return Customer.fromDocument(entry.id, merged);
   }
@@ -486,7 +506,23 @@ class FirestoreCategoryRepository implements CategoryRepository {
   @override
   Future<List<Category>> index() async {
     final entries = await _getColEntries(_col);
-    final list = entries.map((e) => Category.fromDocument(e.id, e.data)).toList();
+    final prodEntries = await _getColEntries(
+      db.collection('products'),
+      preferCache: true,
+    );
+    final counts = <int, int>{};
+    for (final p in prodEntries) {
+      final catId = Product.fromDocument(p.id, p.data).categoryId;
+      if (catId != null) counts[catId] = (counts[catId] ?? 0) + 1;
+    }
+
+    final list = entries.map((e) {
+      final catId = parseEntityId(e.id, e.data);
+      return Category.fromDocument(e.id, {
+        ...e.data,
+        'productsCount': counts[catId] ?? 0,
+      });
+    }).toList();
     list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return list;
   }
@@ -499,6 +535,7 @@ class FirestoreCategoryRepository implements CategoryRepository {
       'id': newId,
       'legacyId': newId,
       'name': name.trim(),
+      'productsCount': 0,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -516,7 +553,14 @@ class FirestoreCategoryRepository implements CategoryRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     };
     await _updateDocSafe(_col.doc(entry.id), updateData, colName: 'categories');
-    final merged = {...entry.data, ...updateData};
+    final prodEntries = await _getColEntries(
+      db.collection('products'),
+      preferCache: true,
+    );
+    final count = prodEntries
+        .where((p) => Product.fromDocument(p.id, p.data).categoryId == id)
+        .length;
+    final merged = {...entry.data, ...updateData, 'productsCount': count};
     return Category.fromDocument(entry.id, merged);
   }
 
@@ -524,6 +568,14 @@ class FirestoreCategoryRepository implements CategoryRepository {
   Future<void> destroy(int id) async {
     final entry = await _findEntryById(_col, id, prefix: 'cat');
     if (entry == null) return;
+    final prodEntries = await _getColEntries(db.collection('products'));
+    final hasProducts = prodEntries
+        .any((p) => Product.fromDocument(p.id, p.data).categoryId == id);
+    if (hasProducts) {
+      throw Exception(
+        'Tidak bisa dihapus — masih ada item dalam kategori ini.',
+      );
+    }
     await _deleteDocSafe(_col.doc(entry.id), colName: 'categories');
   }
 }
@@ -646,7 +698,25 @@ class FirestoreTransactionRepository implements TransactionRepository {
     int perPage = 20,
   }) async {
     final entries = await _getColEntries(_col);
-    var list = entries.map((e) => Transaction.fromDocument(e.id, e.data)).toList();
+    final custEntries = await _getColEntries(
+      db.collection('customers'),
+      preferCache: true,
+    );
+    final custMap = <int, Customer>{
+      for (final c in custEntries)
+        parseEntityId(c.id, c.data): Customer.fromDocument(c.id, c.data),
+    };
+
+    var list = entries.map((e) {
+      final base = Transaction.fromDocument(e.id, e.data);
+      final latestCustomer =
+          base.customerId != null ? custMap[base.customerId!] : null;
+      return Transaction.fromDocument(
+        e.id,
+        e.data,
+        customer: latestCustomer,
+      );
+    }).toList();
 
     if (customerId != null) {
       list = list.where((t) => t.customerId == customerId).toList();
@@ -778,7 +848,25 @@ class FirestoreTransactionRepository implements TransactionRepository {
         .map((e) => TransactionItem.fromDocument(e.id, e.data, transactionId: id))
         .toList();
 
-    return Transaction.fromDocument(entry.id, entry.data, items: items);
+    final base = Transaction.fromDocument(entry.id, entry.data, items: items);
+    Customer? latestCustomer;
+    if (base.customerId != null) {
+      final cEntry = await _findEntryById(
+        db.collection('customers'),
+        base.customerId!,
+        prefix: 'cust',
+      );
+      if (cEntry != null) {
+        latestCustomer = Customer.fromDocument(cEntry.id, cEntry.data);
+      }
+    }
+
+    return Transaction.fromDocument(
+      entry.id,
+      entry.data,
+      customer: latestCustomer,
+      items: items,
+    );
   }
 
   @override
@@ -906,9 +994,9 @@ class FirestoreTransactionRepository implements TransactionRepository {
     );
   }
 
-  /// Mencari `(txDocId, _DocEntry)` untuk sebuah `itemId` dari overlay memori, cache, atau collectionGroup.
+  /// Mencari `(txDocId, _DocEntry)` untuk sebuah `itemId` dari overlay memori atau query terarah.
   Future<(String, _DocEntry)?> _findItemWithParent(int itemId) async {
-    // 1. Cari cepat di _OfflineOverlay.txItems (0ms)
+    // 1. Cari cepat di _OfflineOverlay.txItems (0ms — terisi saat show() dipanggil)
     for (final txEntry in _OfflineOverlay.txItems.entries) {
       final txDocId = txEntry.key;
       final del = _OfflineOverlay.deletedTxItems[txDocId] ?? const <String>{};
@@ -924,15 +1012,20 @@ class FirestoreTransactionRepository implements TransactionRepository {
       }
     }
 
-    // 2. Fallback via collectionGroup jika belum ada di overlay
-    final all = await _getQueryDocsSafe(db.collectionGroup('items').limit(200));
-    for (final d in all) {
-      if (parseEntityId(d.id, d.data()) == itemId) {
-        final txDocId = d.reference.parent.parent?.id ?? '';
-        if (txDocId.isNotEmpty) {
-          _OfflineOverlay.cacheItemFromFirestore(txDocId, d.id, d.data());
-          return (txDocId, _DocEntry(d.id, d.data()));
-        }
+    // 2. Fallback via collectionGroup terfilter (tanpa .limit(200) acak)
+    var hits = await _getQueryDocsSafe(
+      db.collectionGroup('items').where('id', isEqualTo: itemId).limit(1),
+    );
+    if (hits.isEmpty) {
+      hits = await _getQueryDocsSafe(
+        db.collectionGroup('items').where('legacyId', isEqualTo: itemId).limit(1),
+      );
+    }
+    for (final d in hits) {
+      final txDocId = d.reference.parent.parent?.id ?? '';
+      if (txDocId.isNotEmpty) {
+        _OfflineOverlay.cacheItemFromFirestore(txDocId, d.id, d.data());
+        return (txDocId, _DocEntry(d.id, d.data()));
       }
     }
     return null;
@@ -1222,6 +1315,10 @@ class FirestoreDashboardRepository implements DashboardRepository {
 
     // Muat pelanggan terlebih dahulu (memanaskan koneksi gRPC atau mendeteksi offline dalam 1 langkah)
     final custEntries = await _getColEntries(db.collection('customers'));
+    final custNameById = <int, String>{
+      for (final c in custEntries)
+        parseEntityId(c.id, c.data): Customer.fromDocument(c.id, c.data).name,
+    };
     final activeCustCount = custEntries
         .where((e) => Customer.fromDocument(e.id, e.data).isActive)
         .length;
@@ -1242,25 +1339,21 @@ class FirestoreDashboardRepository implements DashboardRepository {
       });
 
     final recent = sortedTx.take(10).map((e) {
-      return TransactionSummary.fromDocument(e.id, e.data);
+      final tx = Transaction.fromDocument(e.id, e.data);
+      final latestName =
+          tx.customerId != null ? custNameById[tx.customerId!] : null;
+      return TransactionSummary.fromDocument(
+        e.id,
+        e.data,
+        customerName: latestName,
+      );
     }).toList();
 
-    final stats = DashboardAggregateService.computeDashboardStats(
+    return DashboardAggregateService.computeDashboardStats(
       todayDateStr: todayStr,
       allTransactions: allTxEntries.map((e) => e.data).toList(),
       allExpenses: allExpEntries.map((e) => e.data).toList(),
       activeCustomersCount: activeCustCount,
-    );
-
-    return DashboardData(
-      bonHariIni: stats.bonHariIni,
-      totalHariIni: stats.totalHariIni,
-      lunasHariIni: stats.lunasHariIni,
-      lunasTotal: stats.lunasTotal,
-      masihHutang: stats.masihHutang,
-      pengeluaranHariIni: stats.pengeluaranHariIni,
-      pengeluaranTotal: stats.pengeluaranTotal,
-      totalPelanggan: stats.totalPelanggan,
       recent: recent,
     );
   }
@@ -1276,6 +1369,61 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
 
   FirebaseFirestore get db => _db(_customDb);
 
+  Future<({Map<int, String> byId, Map<String, String> byName})>
+      _productCategoryLookup() async {
+    final catEntries = await _getColEntries(
+      db.collection('categories'),
+      preferCache: true,
+    );
+    final catNameById = <int, String>{
+      for (final c in catEntries)
+        parseEntityId(c.id, c.data): (c.data['name'] ?? '').toString(),
+    };
+
+    final prodEntries = await _getColEntries(
+      db.collection('products'),
+      preferCache: true,
+    );
+    final byId = <int, String>{};
+    final byName = <String, String>{};
+    for (final p in prodEntries) {
+      final prod = Product.fromDocument(p.id, p.data);
+      final catName =
+          prod.categoryId != null ? (catNameById[prod.categoryId!] ?? '') : '';
+      if (catName.isNotEmpty) {
+        byId[prod.id] = catName;
+        byName[prod.name.toLowerCase()] = catName;
+      }
+    }
+    return (byId: byId, byName: byName);
+  }
+
+  String _resolveCategoryName(
+    Map<String, dynamic> itemData,
+    ({Map<int, String> byId, Map<String, String> byName}) lookup,
+  ) {
+    final existing =
+        (itemData['categoryName'] ?? itemData['category_name'] ?? '').toString();
+    if (existing.isNotEmpty) return existing;
+
+    final prodRaw = itemData['productId'] ?? itemData['product_id'];
+    int? prodId;
+    if (prodRaw is int) {
+      prodId = prodRaw;
+    } else if (prodRaw is String) {
+      prodId = int.tryParse(prodRaw.replaceFirst(RegExp(r'^(legacy_|prod_)'), ''));
+    }
+    if (prodId != null && lookup.byId.containsKey(prodId)) {
+      return lookup.byId[prodId]!;
+    }
+
+    final pName =
+        (itemData['productName'] ?? itemData['product_name'] ?? '')
+            .toString()
+            .toLowerCase();
+    return lookup.byName[pName] ?? '';
+  }
+
   @override
   Future<CigaretteReport> report({
     String? dateFrom,
@@ -1285,27 +1433,66 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
     int page = 1,
   }) async {
     final allTx = await _getColEntries(db.collection('transactions'));
-    final completedTx = allTx.where((e) => e.data['status'] == 'completed');
+    final lookup = await _productCategoryLookup();
+    final custEntries = await _getColEntries(
+      db.collection('customers'),
+      preferCache: true,
+    );
+    final custNameById = <int, String>{
+      for (final c in custEntries)
+        parseEntityId(c.id, c.data): Customer.fromDocument(c.id, c.data).name,
+    };
+
+    // Filter status dan tanggal SEBELUM membaca subkoleksi items (mencegah N+1 di semua bon)
+    final filteredTx = allTx.where((e) {
+      if (e.data['status'] != 'completed') return false;
+      final txDate =
+          (e.data['date'] ?? e.data['transaction_date'] ?? '').toString();
+      if (dateFrom != null &&
+          dateFrom.isNotEmpty &&
+          txDate.compareTo(dateFrom) < 0) {
+        return false;
+      }
+      if (dateTo != null &&
+          dateTo.isNotEmpty &&
+          txDate.compareTo(dateTo) > 0) {
+        return false;
+      }
+      return true;
+    });
 
     final txList = <Map<String, dynamic>>[];
-    for (final entry in completedTx) {
+    for (final entry in filteredTx) {
+      final tx = Transaction.fromDocument(entry.id, entry.data);
       final txData = Map<String, dynamic>.from(entry.data);
+      txData['id'] = tx.id;
+      final resolvedCust =
+          (tx.customerId != null ? custNameById[tx.customerId!] : null) ??
+              tx.customer?.name;
+      if (resolvedCust != null && resolvedCust.isNotEmpty) {
+        txData['customerName'] = resolvedCust;
+      }
+
       final itemsEntries = await _getTxItemEntries(
         db.collection('transactions').doc(entry.id),
+        preferCache: true,
       );
-      txData['items'] = itemsEntries.map((e) => e.data).toList();
+      txData['items'] = itemsEntries.map((e) {
+        final d = Map<String, dynamic>.from(e.data);
+        final catName = _resolveCategoryName(d, lookup);
+        if (catName.isNotEmpty) d['categoryName'] = catName;
+        return d;
+      }).toList();
       txList.add(txData);
     }
 
-    final res = CigaretteClassifier.generateReport(
+    return CigaretteClassifier.generateReport(
       txList,
       dateFrom: dateFrom,
       dateTo: dateTo,
       productFilter: product,
       search: search,
     );
-
-    return CigaretteReport.fromJson(res.toJson());
   }
 
   @override
@@ -1319,6 +1506,7 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
       return BonCigaretteSummary(items: [], totalQuantity: 0, totalAmount: 0);
     }
 
+    final lookup = await _productCategoryLookup();
     final itemsEntries = await _getTxItemEntries(
       db.collection('transactions').doc(entry.id),
       preferCache: true,
@@ -1330,12 +1518,17 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
     for (final doc in itemsEntries) {
       final d = doc.data;
       final pName = (d['productName'] ?? d['product_name'] ?? '') as String;
+      final catName = _resolveCategoryName(d, lookup);
       final desc = d['description'] as String?;
       final q = numFrom(d['quantity']);
       final p = numFrom(d['unitPrice']);
       final sub = numFrom(d['subtotal']);
 
-      if (CigaretteClassifier.isCigarette(productName: pName, description: desc)) {
+      if (CigaretteClassifier.isCigarette(
+        categoryName: catName,
+        productName: pName,
+        description: desc,
+      )) {
         qty += q;
         amount += sub;
         items.add(CigaretteItemRow(
@@ -1361,7 +1554,7 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
 class FirestoreBackupService {
   FirestoreBackupService._();
 
-  static dynamic _toJsonSafe(dynamic v) {
+  static dynamic toJsonSafe(dynamic v) {
     if (v == null || v is num || v is bool || v is String) return v;
     if (v is Timestamp) return v.toDate().toIso8601String();
     if (v is DateTime) return v.toIso8601String();
@@ -1369,11 +1562,11 @@ class FirestoreBackupService {
     if (v is Map) {
       return {
         for (final e in v.entries)
-          if (e.value is! FieldValue) e.key.toString(): _toJsonSafe(e.value),
+          if (e.value is! FieldValue) e.key.toString(): toJsonSafe(e.value),
       };
     }
     if (v is Iterable) {
-      return v.where((x) => x is! FieldValue).map(_toJsonSafe).toList();
+      return v.where((x) => x is! FieldValue).map(toJsonSafe).toList();
     }
     return v.toString();
   }
@@ -1399,12 +1592,12 @@ class FirestoreBackupService {
       );
       txList.add({
         '_docId': tx.id,
-        ...(_toJsonSafe(tx.data) as Map<String, dynamic>),
+        ...(toJsonSafe(tx.data) as Map<String, dynamic>),
         'items': items
             .map(
               (it) => {
                 '_docId': it.id,
-                ...(_toJsonSafe(it.data) as Map<String, dynamic>),
+                ...(toJsonSafe(it.data) as Map<String, dynamic>),
               },
             )
             .toList(),
@@ -1416,7 +1609,7 @@ class FirestoreBackupService {
           .map(
             (e) => {
               '_docId': e.id,
-              ...(_toJsonSafe(e.data) as Map<String, dynamic>),
+              ...(toJsonSafe(e.data) as Map<String, dynamic>),
             },
           )
           .toList();

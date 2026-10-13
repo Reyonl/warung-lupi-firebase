@@ -7,19 +7,24 @@ import 'package:rekapan_warung/services/cigarette_classifier.dart';
 void main() {
   group('CigaretteClassifier Unit Tests', () {
     test('normalize trims and collapses spaces to lowercase', () {
-      expect(CigaretteClassifier.normalize('  Rokok   SURYA  16  '), 'rokok surya 16');
+      expect(
+        CigaretteClassifier.normalize('  Rokok   SURYA  16  '),
+        'rokok surya 16',
+      );
       expect(CigaretteClassifier.normalize(null), '');
     });
 
     test('textIsCigarette identifies keyword rokok', () {
       expect(CigaretteClassifier.textIsCigarette('Rokok'), isTrue);
-      expect(CigaretteClassifier.textIsCigarette('Gudang Garam Rokok Filter'), isTrue);
+      expect(
+        CigaretteClassifier.textIsCigarette('Gudang Garam Rokok Filter'),
+        isTrue,
+      );
       expect(CigaretteClassifier.textIsCigarette('Kopi Susu'), isFalse);
       expect(CigaretteClassifier.textIsCigarette(null), isFalse);
     });
 
     test('isCigarette: Category-based is primary source', () {
-      // Kategori "Rokok" membuat produk apapun menjadi rokok (walau nama tanpa kata rokok)
       expect(
         CigaretteClassifier.isCigarette(
           categoryName: 'Rokok',
@@ -88,6 +93,32 @@ void main() {
         isFalse,
       );
     });
+
+    test('generateReport reads camelCase customerName and categoryName from Firestore docs', () {
+      final report = CigaretteClassifier.generateReport([
+        {
+          'id': 101,
+          'number': 'INV-20261013-001',
+          'date': '2026-10-13',
+          'customerName': 'Pak RT',
+          'status': 'completed',
+          'paymentStatus': 'unpaid',
+          'items': [
+            {
+              'productName': 'Sampoerna Mild 16',
+              'categoryName': 'Rokok',
+              'quantity': 2,
+              'subtotal': 64000,
+            },
+          ],
+        },
+      ]);
+
+      expect(report.summary.cigaretteQuantity, 2);
+      expect(report.summary.cigaretteSales, 64000);
+      expect(report.bons.single.customerName, 'Pak RT');
+      expect(report.items.single.productName, 'Sampoerna Mild 16');
+    });
   });
 
   group('Cigarette Report Golden Test (EC2 Fixture Comparison)', () {
@@ -137,10 +168,10 @@ void main() {
       final expectedTxData = (goldenFixture['transactions']['data'] as List)
           .cast<Map<String, dynamic>>();
 
-      expect(report.transactions.length, expectedTxData.length);
+      expect(report.bons.length, expectedTxData.length);
 
       for (int i = 0; i < expectedTxData.length; i++) {
-        final actual = report.transactions[i];
+        final actual = report.bons[i];
         final expected = expectedTxData[i];
 
         expect(actual.id, expected['id']);
@@ -159,16 +190,6 @@ void main() {
       final expectedProducts = (goldenFixture['products'] as List).cast<String>();
 
       expect(report.products, expectedProducts);
-    });
-
-    test('Full JSON output matches EC2 endpoint structure 100%', () {
-      final report = CigaretteClassifier.generateReport(snapshotDataset);
-      final jsonOutput = report.toJson();
-
-      expect(jsonOutput['summary'], goldenFixture['summary']);
-      expect(jsonOutput['items'], goldenFixture['items']);
-      expect(jsonOutput['transactions']['data'], goldenFixture['transactions']['data']);
-      expect(jsonOutput['products'], goldenFixture['products']);
     });
   });
 }

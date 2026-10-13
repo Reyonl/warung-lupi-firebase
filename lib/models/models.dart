@@ -794,7 +794,7 @@ class Expense {
     if (txRaw is int) {
       txId = txRaw;
     } else if (txRaw is String) {
-      txId = int.tryParse(txRaw.replaceFirst('legacy_', ''));
+      txId = int.tryParse(txRaw.replaceFirst(RegExp(r'^(legacy_|tx_)'), ''));
     }
 
     return Expense(

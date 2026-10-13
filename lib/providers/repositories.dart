@@ -1,192 +1,79 @@
-import 'package:dio/dio.dart';
-
-import '../core/api/api_client.dart';
 import '../models/models.dart';
 
-/// Repository pelanggan — mirror `Api\CustomerController`.
+/// Kontrak repository pelanggan (implementasi produksi di [FirestoreCustomerRepository];
+/// default kosong untuk unit/widget test tanpa jaringan).
 class CustomerRepository {
-  final Dio _dio = ApiClient.instance.dio;
+  Future<List<Customer>> index({String search = '', bool? isActive}) async =>
+      [];
 
-  /// GET /api/customers?search=&is_active=
-  Future<List<Customer>> index({String search = '', bool? isActive}) async {
-    final params = <String, dynamic>{};
-    if (search.trim().isNotEmpty) params['search'] = search.trim();
-    if (isActive != null) params['is_active'] = isActive ? 1 : 0;
-    final res = await _dio.get('/customers', queryParameters: params);
-    final data = res.data;
-    if (data is List) {
-      return data
-          .whereType<Map<String, dynamic>>()
-          .map(Customer.fromJson)
-          .toList();
-    }
-    if (data is Map && data['data'] is List) {
-      return (data['data'] as List)
-          .whereType<Map<String, dynamic>>()
-          .map(Customer.fromJson)
-          .toList();
-    }
-    return [];
-  }
-
-  /// POST /api/customers
   Future<Customer> store({
     required String name,
     String? phone,
     String? notes,
-  }) async {
-    final res = await _dio.post(
-      '/customers',
-      data: {
-        'name': name.trim(),
-        'phone': (phone == null || phone.isEmpty) ? null : phone.trim(),
-        'notes': (notes == null || notes.isEmpty) ? null : notes.trim(),
-      },
-    );
-    return Customer.fromJson(
-      res.data is Map ? (res.data as Map).cast<String, dynamic>() : {},
-    );
-  }
+  }) async =>
+      Customer(id: 1, name: name.trim(), phone: phone, notes: notes, isActive: true);
 
-  /// GET /api/customers/{id}
-  Future<Customer> show(int id) async {
-    final res = await _dio.get('/customers/$id');
-    return Customer.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  Future<Customer> show(int id) async =>
+      Customer(id: id, name: '', isActive: true);
 
-  /// PUT /api/customers/{id}
   Future<Customer> update(
     int id, {
     String? name,
     String? phone,
     String? notes,
     bool? isActive,
-  }) async {
-    final res = await _dio.put(
-      '/customers/$id',
-      data: {
-        if (name != null) 'name': name.trim(),
-        if (phone != null) 'phone': (phone.isEmpty) ? null : phone.trim(),
-        if (notes != null) 'notes': (notes.isEmpty) ? null : notes.trim(),
-        if (isActive != null) 'is_active': isActive,
-      },
-    );
-    return Customer.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      Customer(
+        id: id,
+        name: name ?? '',
+        phone: phone,
+        notes: notes,
+        isActive: isActive ?? true,
+      );
 
-  /// DELETE /api/customers/{id} — 422 jika punya transaksi (message di error)
-  Future<void> destroy(int id) async {
-    await _dio.delete('/customers/$id');
-  }
+  Future<void> destroy(int id) async {}
 
-  /// GET /api/customers/{id}/transactions
-  Future<List<TransactionSummary>> transactions(int id) async {
-    final res = await _dio.get('/customers/$id/transactions');
-    final data = res.data;
-    if (data is Map && data['transactions'] is List) {
-      return (data['transactions'] as List)
-          .whereType<Map<String, dynamic>>()
-          .map(TransactionSummary.fromJson)
-          .toList();
-    }
-    return [];
-  }
+  Future<List<TransactionSummary>> transactions(int id) async => [];
 }
 
-/// Repository kategori — mirror `Api\CategoryController`.
+/// Kontrak repository kategori.
 class CategoryRepository {
-  final Dio _dio = ApiClient.instance.dio;
+  Future<List<Category>> index() async => [];
 
-  /// GET /api/categories (withCount products)
-  Future<List<Category>> index() async {
-    final res = await _dio.get('/categories');
-    final data = res.data;
-    if (data is List) {
-      return data
-          .whereType<Map<String, dynamic>>()
-          .map(Category.fromJson)
-          .toList();
-    }
-    if (data is Map && data['data'] is List) {
-      return (data['data'] as List)
-          .whereType<Map<String, dynamic>>()
-          .map(Category.fromJson)
-          .toList();
-    }
-    return [];
-  }
+  Future<Category> store(String name) async =>
+      Category(id: 1, name: name.trim(), productsCount: 0);
 
-  /// POST /api/categories
-  Future<Category> store(String name) async {
-    final res = await _dio.post('/categories', data: {'name': name.trim()});
-    return Category.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  Future<Category> update(int id, String name) async =>
+      Category(id: id, name: name.trim(), productsCount: 0);
 
-  /// PUT /api/categories/{id}
-  Future<Category> update(int id, String name) async {
-    final res = await _dio.put('/categories/$id', data: {'name': name.trim()});
-    return Category.fromJson((res.data as Map).cast<String, dynamic>());
-  }
-
-  /// DELETE /api/categories/{id} — 422 jika masih punya products
-  Future<void> destroy(int id) async {
-    await _dio.delete('/categories/$id');
-  }
+  Future<void> destroy(int id) async {}
 }
 
-/// Repository produk/item — mirror `Api\ProductController`.
+/// Kontrak repository produk/item.
 class ProductRepository {
-  final Dio _dio = ApiClient.instance.dio;
-
-  /// GET /api/products?search=&category_id=&is_active=
   Future<List<Product>> index({
     String search = '',
     int? categoryId,
     bool? isActive,
-  }) async {
-    final params = <String, dynamic>{};
-    if (search.trim().isNotEmpty) params['search'] = search.trim();
-    if (categoryId != null) params['category_id'] = categoryId;
-    if (isActive != null) params['is_active'] = isActive ? 1 : 0;
-    final res = await _dio.get('/products', queryParameters: params);
-    final data = res.data;
-    if (data is List) {
-      return data
-          .whereType<Map<String, dynamic>>()
-          .map(Product.fromJson)
-          .toList();
-    }
-    if (data is Map && data['data'] is List) {
-      return (data['data'] as List)
-          .whereType<Map<String, dynamic>>()
-          .map(Product.fromJson)
-          .toList();
-    }
-    return [];
-  }
+  }) async =>
+      [];
 
-  /// POST /api/products
   Future<Product> store({
     required int categoryId,
     required String name,
     required int defaultPrice,
     required String unit,
     bool isActive = true,
-  }) async {
-    final res = await _dio.post(
-      '/products',
-      data: {
-        'category_id': categoryId,
-        'name': name.trim(),
-        'default_price': defaultPrice,
-        'unit': unit.trim(),
-        'is_active': isActive,
-      },
-    );
-    return Product.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      Product(
+        id: 1,
+        categoryId: categoryId,
+        name: name.trim(),
+        defaultPrice: defaultPrice,
+        unit: unit.trim(),
+        isActive: isActive,
+      );
 
-  /// PUT /api/products/{id}
   Future<Product> update(
     int id, {
     int? categoryId,
@@ -194,31 +81,21 @@ class ProductRepository {
     int? defaultPrice,
     String? unit,
     bool? isActive,
-  }) async {
-    final res = await _dio.put(
-      '/products/$id',
-      data: {
-        if (categoryId != null) 'category_id': categoryId,
-        if (name != null) 'name': name.trim(),
-        if (defaultPrice != null) 'default_price': defaultPrice,
-        if (unit != null) 'unit': unit.trim(),
-        if (isActive != null) 'is_active': isActive,
-      },
-    );
-    return Product.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      Product(
+        id: id,
+        categoryId: categoryId,
+        name: name ?? '',
+        defaultPrice: defaultPrice ?? 0,
+        unit: unit ?? 'pcs',
+        isActive: isActive ?? true,
+      );
 
-  /// DELETE /api/products/{id}
-  Future<void> destroy(int id) async {
-    await _dio.delete('/products/$id');
-  }
+  Future<void> destroy(int id) async {}
 }
 
-/// Repository transaksi/bon — mirror `Api\TransactionController` + `TransactionItemController`.
+/// Kontrak repository transaksi/bon.
 class TransactionRepository {
-  final Dio _dio = ApiClient.instance.dio;
-
-  /// GET /api/transactions?search=&date_from=&date_to=&status=&customer_id=&page=
   Future<Paginated<Transaction>> index({
     String search = '',
     String? dateFrom,
@@ -227,44 +104,34 @@ class TransactionRepository {
     int? customerId,
     int page = 1,
     int perPage = 20,
-  }) async {
-    final params = <String, dynamic>{'page': page, 'per_page': perPage};
-    if (search.trim().isNotEmpty) params['search'] = search.trim();
-    if (dateFrom != null && dateFrom.isNotEmpty) params['date_from'] = dateFrom;
-    if (dateTo != null && dateTo.isNotEmpty) params['date_to'] = dateTo;
-    if (status != null && status.isNotEmpty) params['status'] = status;
-    if (customerId != null) params['customer_id'] = customerId;
-    final res = await _dio.get('/transactions', queryParameters: params);
-    return Paginated<Transaction>.fromJson(
-      (res.data as Map).cast<String, dynamic>(),
-      Transaction.fromJson,
-    );
-  }
+  }) async =>
+      const Paginated(data: [], currentPage: 1, lastPage: 1, total: 0);
 
-  /// POST /api/transactions — buat header bon (status draft)
   Future<Transaction> store({
     required int customerId,
-    required String transactionDate, // yyyy-MM-dd
+    required String transactionDate,
     String? notes,
-  }) async {
-    final res = await _dio.post(
-      '/transactions',
-      data: {
-        'customer_id': customerId,
-        'transaction_date': transactionDate,
-        'notes': (notes == null || notes.isEmpty) ? null : notes,
-      },
-    );
-    return Transaction.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      Transaction(
+        id: 1,
+        customerId: customerId,
+        transactionNumber: 'INV-001',
+        transactionDate: transactionDate,
+        totalAmount: 0,
+        status: 'draft',
+        paymentStatus: 'unpaid',
+        notes: notes,
+      );
 
-  /// GET /api/transactions/{id} — lengkap (customer + items)
-  Future<Transaction> show(int id) async {
-    final res = await _dio.get('/transactions/$id');
-    return Transaction.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  Future<Transaction> show(int id) async => Transaction(
+        id: id,
+        transactionNumber: 'INV-001',
+        transactionDate: '',
+        totalAmount: 0,
+        status: 'draft',
+        paymentStatus: 'unpaid',
+      );
 
-  /// PUT /api/transactions/{id} — update header / status / payment_status
   Future<Transaction> update(
     int id, {
     int? customerId,
@@ -272,26 +139,20 @@ class TransactionRepository {
     String? status,
     String? paymentStatus,
     String? notes,
-  }) async {
-    final res = await _dio.put(
-      '/transactions/$id',
-      data: {
-        if (customerId != null) 'customer_id': customerId,
-        if (transactionDate != null) 'transaction_date': transactionDate,
-        if (status != null) 'status': status,
-        if (paymentStatus != null) 'payment_status': paymentStatus,
-        if (notes != null) 'notes': notes,
-      },
-    );
-    return Transaction.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      Transaction(
+        id: id,
+        customerId: customerId,
+        transactionNumber: 'INV-001',
+        transactionDate: transactionDate ?? '',
+        totalAmount: 0,
+        status: status ?? 'draft',
+        paymentStatus: paymentStatus ?? 'unpaid',
+        notes: notes,
+      );
 
-  /// DELETE /api/transactions/{id}
-  Future<void> destroy(int id) async {
-    await _dio.delete('/transactions/$id');
-  }
+  Future<void> destroy(int id) async {}
 
-  /// POST /api/transactions/{id}/items — tambah item bon
   Future<TransactionItem> addItem(
     int transactionId, {
     int? productId,
@@ -301,25 +162,19 @@ class TransactionRepository {
     String unit = 'pcs',
     required int unitPrice,
     int? subtotal,
-  }) async {
-    final res = await _dio.post(
-      '/transactions/$transactionId/items',
-      data: {
-        'product_id': productId,
-        'product_name': productName,
-        'description': (description == null || description.isEmpty)
-            ? null
-            : description,
-        'quantity': quantity,
-        'unit': unit,
-        'unit_price': unitPrice,
-        if (subtotal != null) 'subtotal': subtotal,
-      },
-    );
-    return TransactionItem.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      TransactionItem(
+        id: 1,
+        transactionId: transactionId,
+        productId: productId,
+        productName: productName,
+        description: description,
+        quantity: quantity,
+        unit: unit,
+        unitPrice: unitPrice,
+        subtotal: subtotal ?? (quantity * unitPrice),
+      );
 
-  /// PUT /api/transaction-items/{id}
   Future<TransactionItem> updateItem(
     int itemId, {
     int? productId,
@@ -329,33 +184,23 @@ class TransactionRepository {
     String? unit,
     int? unitPrice,
     int? subtotal,
-  }) async {
-    final res = await _dio.put(
-      '/transaction-items/$itemId',
-      data: {
-        if (productId != null) 'product_id': productId,
-        if (productName != null) 'product_name': productName,
-        if (description != null) 'description': description,
-        if (quantity != null) 'quantity': quantity,
-        if (unit != null) 'unit': unit,
-        if (unitPrice != null) 'unit_price': unitPrice,
-        if (subtotal != null) 'subtotal': subtotal,
-      },
-    );
-    return TransactionItem.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      TransactionItem(
+        id: itemId,
+        productId: productId,
+        productName: productName ?? '',
+        description: description,
+        quantity: quantity ?? 1,
+        unit: unit ?? 'pcs',
+        unitPrice: unitPrice ?? 0,
+        subtotal: subtotal ?? 0,
+      );
 
-  /// DELETE /api/transaction-items/{id}
-  Future<void> deleteItem(int itemId) async {
-    await _dio.delete('/transaction-items/$itemId');
-  }
+  Future<void> deleteItem(int itemId) async {}
 }
 
-/// Repository pengeluaran — mirror `Api\ExpenseController`.
+/// Kontrak repository pengeluaran.
 class ExpenseRepository {
-  final Dio _dio = ApiClient.instance.dio;
-
-  /// GET /api/expenses?date_from=&date_to=&source=&category=&search=&page=
   Future<ExpensePage> index({
     String? dateFrom,
     String? dateTo,
@@ -363,42 +208,32 @@ class ExpenseRepository {
     String? category,
     String? search,
     int page = 1,
-  }) async {
-    final params = <String, dynamic>{'page': page};
-    if (dateFrom != null && dateFrom.isNotEmpty) params['date_from'] = dateFrom;
-    if (dateTo != null && dateTo.isNotEmpty) params['date_to'] = dateTo;
-    if (source != null && source.isNotEmpty) params['source'] = source;
-    if (category != null && category.isNotEmpty) params['category'] = category;
-    if (search != null && search.isNotEmpty) params['search'] = search;
-    final res = await _dio.get('/expenses', queryParameters: params);
-    return ExpensePage.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      const ExpensePage(
+        data: [],
+        summary: ExpenseSummary.empty,
+        currentPage: 1,
+        lastPage: 1,
+        total: 0,
+      );
 
-  /// POST /api/expenses — catat pengeluaran manual (source selalu `manual`).
   Future<Expense> store({
     required String expenseDate,
     required String title,
     String? category,
     required int amount,
     String? notes,
-  }) async {
-    final res = await _dio.post(
-      '/expenses',
-      data: {
-        'expense_date': expenseDate,
-        'title': title.trim(),
-        'category': (category == null || category.trim().isEmpty)
-            ? null
-            : category.trim(),
-        'amount': amount,
-        'notes': (notes == null || notes.trim().isEmpty) ? null : notes.trim(),
-      },
-    );
-    return Expense.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      Expense(
+        id: 1,
+        expenseDate: expenseDate,
+        title: title,
+        category: category,
+        amount: amount,
+        source: 'manual',
+        notes: notes,
+      );
 
-  /// PUT /api/expenses/{id} — hanya untuk `source=manual`
-  /// (backend menolak dengan 422 untuk pengeluaran dari bon).
   Future<Expense> update(
     int id, {
     String? expenseDate,
@@ -406,92 +241,57 @@ class ExpenseRepository {
     String? category,
     int? amount,
     String? notes,
-  }) async {
-    final res = await _dio.put(
-      '/expenses/$id',
-      data: {
-        if (expenseDate != null) 'expense_date': expenseDate,
-        if (title != null) 'title': title.trim(),
-        if (category != null)
-          'category': category.trim().isEmpty ? null : category.trim(),
-        if (amount != null) 'amount': amount,
-        if (notes != null) 'notes': notes.trim().isEmpty ? null : notes.trim(),
-      },
-    );
-    return Expense.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      Expense(
+        id: id,
+        expenseDate: expenseDate ?? '',
+        title: title ?? '',
+        category: category,
+        amount: amount ?? 0,
+        source: 'manual',
+        notes: notes,
+      );
 
-  /// DELETE /api/expenses/{id} — hanya untuk `source=manual`
-  /// (422 untuk pengeluaran dari bon; hapus item di bon terkait).
-  Future<void> destroy(int id) async {
-    await _dio.delete('/expenses/$id');
-  }
+  Future<void> destroy(int id) async {}
 }
 
-/// Repository dashboard — mirror `Api\DashboardController`.
+/// Kontrak repository dashboard.
 class DashboardRepository {
-  final Dio _dio = ApiClient.instance.dio;
-
-  /// GET /api/dashboard
-  Future<DashboardData> index() async {
-    final res = await _dio.get('/dashboard');
-    final json = (res.data as Map).cast<String, dynamic>();
-    final stats = (json['stats'] as Map?)?.cast<String, dynamic>() ?? {};
-    final recent = json['recent_transactions'] is List
-        ? (json['recent_transactions'] as List)
-              .whereType<Map<String, dynamic>>()
-              .map(TransactionSummary.fromJson)
-              .toList()
-        : <TransactionSummary>[];
-
-    // CATATAN: `SUM()` pada kolom DECIMAL di MySQL dikembalikan sebagai
-    // **string** JSON (mis. "2195000"), bukan number. Jangan pakai
-    // `as num` — gunakan numFrom yang menerima String numerik juga.
-    return DashboardData(
-      bonHariIni: numFrom(stats['bon_hari_ini']),
-      totalHariIni: numFrom(stats['total_hari_ini']),
-      lunasHariIni: numFrom(stats['lunas_hari_ini']),
-      lunasTotal: numFrom(stats['lunas_total']),
-      masihHutang: numFrom(stats['masih_hutang']),
-      pengeluaranHariIni: numFrom(stats['pengeluaran_hari_ini']),
-      pengeluaranTotal: numFrom(stats['pengeluaran_total']),
-      totalPelanggan: numFrom(stats['total_pelanggan']),
-      recent: recent,
-    );
-  }
+  Future<DashboardData> index() async => const DashboardData(
+        bonHariIni: 0,
+        totalHariIni: 0,
+        lunasHariIni: 0,
+        lunasTotal: 0,
+        masihHutang: 0,
+        totalPelanggan: 0,
+        recent: [],
+      );
 }
 
-/// Repository laporan rokok — mirror `Api\CigaretteReportController`.
+/// Kontrak repository laporan rokok.
 class CigaretteReportRepository {
-  final Dio _dio = ApiClient.instance.dio;
-
-  /// GET /api/reports/cigarettes?date_from&date_to&product&search&page
   Future<CigaretteReport> report({
     String? dateFrom,
     String? dateTo,
     String? product,
     String? search,
     int page = 1,
-  }) async {
-    final params = <String, dynamic>{'page': page};
-    if (dateFrom != null && dateFrom.isNotEmpty) params['date_from'] = dateFrom;
-    if (dateTo != null && dateTo.isNotEmpty) params['date_to'] = dateTo;
-    if (product != null && product.isNotEmpty) params['product'] = product;
-    if (search != null && search.isNotEmpty) params['search'] = search;
-    final res = await _dio.get('/reports/cigarettes', queryParameters: params);
-    return CigaretteReport.fromJson((res.data as Map).cast<String, dynamic>());
-  }
+  }) async =>
+      const CigaretteReport(
+        summary: CigaretteSummary.empty,
+        items: [],
+        bons: [],
+        bonTotal: 0,
+        currentPage: 1,
+        lastPage: 1,
+        products: [],
+      );
 
-  /// GET /api/transactions/{id}/cigarettes — ringkasan rokok satu bon.
-  Future<BonCigaretteSummary> bonSummary(int transactionId) async {
-    final res = await _dio.get('/transactions/$transactionId/cigarettes');
-    return BonCigaretteSummary.fromJson(
-      (res.data as Map).cast<String, dynamic>(),
-    );
-  }
+  Future<BonCigaretteSummary> bonSummary(int transactionId) async =>
+      const BonCigaretteSummary(items: [], totalQuantity: 0, totalAmount: 0);
 }
 
-/// Data dashboard (padanan `stats` dari DashboardController).
+/// Data ringkasan dashboard.
 class DashboardData {
   final int bonHariIni;
   final int totalHariIni;

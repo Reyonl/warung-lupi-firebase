@@ -1,5 +1,11 @@
+import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rekapan_warung/core/api/api_client.dart';
 import 'package:rekapan_warung/models/models.dart';
+import 'package:rekapan_warung/repositories/firestore_repositories.dart';
+import 'package:rekapan_warung/services/customer_rules_service.dart';
 
 void main() {
   group('Firestore Model Serialization & Deserialization', () {
@@ -10,9 +16,13 @@ void main() {
       expect(doc['name'], 'Rokok');
       expect(doc['legacyId'], 3);
 
-      final fromDoc = Category.fromDocument('legacy_3', doc);
+      final fromDoc = Category.fromDocument('legacy_3', {
+        ...doc,
+        'productsCount': 15,
+      });
       expect(fromDoc.id, 3);
       expect(fromDoc.name, 'Rokok');
+      expect(fromDoc.productsCount, 15);
 
       // Test fallback ID dari docId jika legacyId tidak ada
       final fallbackDoc = Category.fromDocument('legacy_7', {'name': 'Minuman'});
@@ -140,7 +150,7 @@ void main() {
       expect(fromDoc.paymentStatus, 'paid');
     });
 
-    test('Expense toDocument & fromDocument', () {
+    test('Expense toDocument & fromDocument (legacy_ and tx_ prefixes)', () {
       final expense = Expense(
         id: 77,
         expenseDate: '2026-10-12',
@@ -167,6 +177,16 @@ void main() {
       expect(fromDoc.category, 'Operasional');
       expect(fromDoc.amount, 100000);
       expect(fromDoc.source, 'manual');
+
+      final bonExp = Expense.fromDocument('bon_tx_999_item_1', {
+        'date': '2026-10-13',
+        'title': 'Potongan Bon',
+        'amount': 15000,
+        'source': 'bon',
+        'transactionId': 'tx_999',
+      });
+      expect(bonExp.transactionId, 999);
+      expect(bonExp.isFromBon, isTrue);
     });
 
     test('Transaction.fromDocument resolves customerName and non-zero ID for random Firestore IDs', () {
@@ -204,6 +224,39 @@ void main() {
       expect(parsed.id, 1776077589123);
       expect(parsed.productName, 'Gorengan Tempe');
       expect(parsed.subtotal, 5000);
+    });
+
+    test('FirestoreBackupService.toJsonSafe converts Timestamp and strips FieldValue', () {
+      final ts = Timestamp.fromDate(DateTime.utc(2026, 10, 13, 6, 0, 0));
+      final raw = {
+        'name': 'Budi',
+        'createdAt': ts,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'nested': [
+          {'ts': ts, 'sentinel': FieldValue.delete()},
+        ],
+      };
+
+      final safe = FirestoreBackupService.toJsonSafe(raw) as Map<String, dynamic>;
+      final encoded = jsonEncode(safe);
+      expect(encoded, contains(ts.toDate().toIso8601String()));
+      expect(safe.containsKey('updatedAt'), isFalse);
+      expect((safe['nested'] as List).first.containsKey('sentinel'), isFalse);
+    });
+
+    test('ApiClient.errorMessage surfaces CustomerDeletionException and Exception messages', () {
+      expect(
+        ApiClient.errorMessage(
+          const CustomerDeletionException('Pelanggan masih punya bon.'),
+        ),
+        'Pelanggan masih punya bon.',
+      );
+      expect(
+        ApiClient.errorMessage(
+          Exception('Tidak bisa dihapus — masih ada item dalam kategori ini.'),
+        ),
+        'Tidak bisa dihapus — masih ada item dalam kategori ini.',
+      );
     });
   });
 }

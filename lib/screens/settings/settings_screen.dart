@@ -5,19 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../core/api/api_client.dart';
-import '../../core/config/feature_flags.dart';
 import '../../core/storage/prefs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../repositories/firestore_repositories.dart';
 import '../../services/printer_service.dart';
 import '../../widgets/widgets.dart';
 
-/// Pengaturan — meniru `pages/settings/PrintSettings.jsx`.
-/// - Server API (alamat backend Laravel yang sedang dipakai)
+/// Pengaturan Warung Lupi:
+/// - Backup Data ke File JSON (Google Drive / WhatsApp / Memori HP)
 /// - Pilih / Pair printer Bluetooth Classic SPP (dari perangkat yang sudah paired/bonded)
 /// - Tes Cetak
-/// - Ukuran kertas default 58mm / 80mm (disimpan ke prefs)
+/// - Ukuran kertas default 58mm / 80mm
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -43,19 +41,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _testError;
   String? _testSuccess;
 
-  // Server API
-  final _serverCtrl = TextEditingController();
-  bool _testingServer = false;
-  String? _serverError;
-  String? _serverSuccess;
-
   // Backup JSON
   bool _exportingBackup = false;
   String? _backupError;
   String? _backupSuccess;
-
-  // Feature flags Firestore
-  Map<String, bool?> _firestoreFlags = {};
 
   @override
   void initState() {
@@ -63,97 +52,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadPrefs();
   }
 
-  @override
-  void dispose() {
-    _serverCtrl.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadPrefs() async {
     final size = await Prefs.getThermalSize();
     final name = await Prefs.getPrinterName();
     final id = await Prefs.getPrinterId();
-    final server = await Prefs.getApiBaseUrl();
-    final flags = await Prefs.getFirestoreFlags();
     if (!mounted) return;
     setState(() {
       _size = size;
       _printerName = name;
       _printerId = id;
-      // Kosong = memakai default produksi (ditampilkan sebagai hint).
-      _serverCtrl.text = server;
-      _firestoreFlags = flags;
       _loadingPrefs = false;
-    });
-  }
-
-  Future<void> _toggleFirestoreFlag(String key, bool val) async {
-    await Prefs.setFirestoreFlag(key, val);
-    await FeatureFlags.init();
-    final flags = await Prefs.getFirestoreFlags();
-    if (!mounted) return;
-    setState(() => _firestoreFlags = flags);
-    showToast(
-      context,
-      'Flag $key diubah menjadi ${val ? "Firestore" : "REST (Laravel)"}. Restart aplikasi untuk perubahan penuh.',
-    );
-  }
-
-  /// Simpan alamat server. Kosong → kembali ke default produksi.
-  Future<void> _saveServer() async {
-    final raw = _serverCtrl.text.trim();
-    setState(() {
-      _serverError = null;
-      _serverSuccess = null;
-    });
-    if (raw.isNotEmpty && Uri.tryParse(raw)?.hasScheme != true) {
-      setState(
-        () => _serverError = 'Alamat harus berupa URL lengkap, contoh: https://warunglupi.tplp004.com',
-      );
-      return;
-    }
-    // Jangan biarkan produksi turun ke HTTP polos tanpa disadari.
-    if (raw.startsWith('http://') &&
-        !raw.contains('localhost') &&
-        !raw.contains('127.0.0.1') &&
-        !RegExp(r'://\d+\.\d+\.\d+\.\d+').hasMatch(raw)) {
-      final ok = await showConfirmDialog(
-        context,
-        title: 'Gunakan HTTP (tanpa HTTPS)?',
-        message:
-            'Alamat "$raw" memakai HTTP polos. Data bon akan dikirim tanpa enkripsi. Lanjutkan?',
-        confirmLabel: 'Lanjutkan',
-      );
-      if (ok != true) return;
-    }
-
-    await Prefs.setApiBaseUrl(raw);
-    ApiConfig.runtimeOverride = raw;
-    ApiClient.instance.setBaseUrl(raw);
-    if (!mounted) return;
-    setState(() {
-      _serverSuccess = raw.isEmpty
-          ? 'Kembali ke server produksi: ${ApiClient.productionBaseUrl}'
-          : 'Alamat server disimpan.';
-    });
-  }
-
-  Future<void> _testServer() async {
-    setState(() {
-      _testingServer = true;
-      _serverError = null;
-      _serverSuccess = null;
-    });
-    final err = await ApiClient.ping();
-    if (!mounted) return;
-    setState(() {
-      _testingServer = false;
-      if (err == null) {
-        _serverSuccess =
-            'Terhubung ke ${ApiClient.activeBaseUrl} — server merespons.';
-      } else {
-        _serverError = err;
-      }
     });
   }
 
@@ -165,20 +73,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _available = [];
     });
     try {
-      // Printer thermal Bluetooth Classic harus sudah di-pair lewat
-      // Pengaturan Android → Bluetooth. Kita ambil daftar perangkat paired.
       final paired = await PrinterService.instance.bondedPrinters();
       if (!mounted) return;
       if (paired.isEmpty) {
         setState(
-          () => _pairError = 'Tidak ada perangkat Bluetooth yang terpasang (paired). Pasangkan printer Anda lewat Pengaturan Android → Bluetooth (PIN umumnya 0000 atau 1234), lalu tekan tombol ini lagi.',
+          () => _pairError =
+              'Tidak ada perangkat Bluetooth yang terpasang (paired). Pasangkan printer Anda lewat Pengaturan Android → Bluetooth (PIN umumnya 0000 atau 1234), lalu tekan tombol ini lagi.',
         );
         return;
       }
       setState(() => _available = paired);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => _pairError = 'Gagal memuat printer: ${e.toString()}');
+      }
     } finally {
       if (mounted) setState(() => _scanning = false);
     }
@@ -194,7 +102,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final name = device.displayName;
       final id = device.mac;
 
-      // Simpan ke prefs (padanan localStorage di web) — MAC sebagai ID.
       await Prefs.setPrinter(name, id);
       PrinterService.instance.setActivePrinter(name: name, mac: id);
 
@@ -208,8 +115,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         });
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => _pairError = 'Gagal memilih printer: ${e.toString()}');
+      }
     } finally {
       if (mounted) setState(() => _pairing = false);
     }
@@ -230,13 +138,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         printerName: _printerName,
         printerId: _printerId,
       );
-      if (mounted)
+      if (mounted) {
         setState(() => _testSuccess = 'Tes cetak berhasil dikirim ke printer!');
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _testError = 'Printer tidak dapat terhubung: ${e.toString()}',
         );
+      }
     } finally {
       if (mounted) setState(() => _testing = false);
     }
@@ -320,17 +230,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onExport: _exportBackup,
                 ),
                 const SizedBox(height: 16),
-                _ServerCard(
-                  controller: _serverCtrl,
-                  activeUrl: ApiClient.activeBaseUrl,
-                  productionUrl: ApiClient.productionBaseUrl,
-                  isTesting: _testingServer,
-                  error: _serverError,
-                  success: _serverSuccess,
-                  onSave: _saveServer,
-                  onTest: _testServer,
-                ),
-                const SizedBox(height: 16),
                 _PrinterCard(
                   printerName: _printerName,
                   printerId: _printerId,
@@ -348,11 +247,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 _SizeCard(size: _size, onChanged: _changeSize),
-                const SizedBox(height: 16),
-                _FirestoreFlagsCard(
-                  flags: _firestoreFlags,
-                  onToggle: _toggleFirestoreFlag,
-                ),
               ],
             ],
           ),
@@ -417,114 +311,6 @@ class _BackupCard extends StatelessWidget {
             loading: exporting,
             onPressed: exporting ? null : onExport,
             expand: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Kartu konfigurasi server API — menampilkan alamat yang sedang dipakai dan
-/// memungkinkan menggantinya tanpa build ulang (berguna untuk dev/testing).
-class _ServerCard extends StatelessWidget {
-  final TextEditingController controller;
-  final String activeUrl;
-  final String productionUrl;
-  final bool isTesting;
-  final String? error;
-  final String? success;
-  final VoidCallback onSave;
-  final VoidCallback onTest;
-
-  const _ServerCard({
-    required this.controller,
-    required this.activeUrl,
-    required this.productionUrl,
-    required this.isTesting,
-    required this.error,
-    required this.success,
-    required this.onSave,
-    required this.onTest,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isProd = activeUrl == productionUrl;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'SERVER API',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              color: AppColors.gray800,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  activeUrl.isEmpty ? '(relatif /api)' : activeUrl,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMain,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ),
-              StatusBadge(
-                label: isProd ? 'Produksi' : 'Kustom',
-                background: isProd ? AppColors.successBg : AppColors.gray100,
-                foreground: isProd ? AppColors.successText : AppColors.gray800,
-                border: isProd ? AppColors.successBorder : AppColors.gray200,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (error != null) InlineMessage(error!),
-          if (success != null) InlineMessage(success!, isError: false),
-          TextField(
-            controller: controller,
-            keyboardType: TextInputType.url,
-            autocorrect: false,
-            decoration: InputDecoration(
-              labelText: 'Alamat server (kosongkan = produksi)',
-              hintText: productionUrl,
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: DarkButton(label: 'Simpan Alamat', onPressed: onSave),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlineButton(
-                  label: isTesting ? 'Menguji...' : 'Tes Koneksi',
-                  loading: isTesting,
-                  onPressed: onTest,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Semua data (pelanggan, item, bon) dibaca & ditulis ke backend '
-            'Laravel di atas — database yang sama dengan aplikasi web.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
         ],
       ),
@@ -799,120 +585,3 @@ class _SizeCard extends StatelessWidget {
     );
   }
 }
-
-class _FirestoreFlagsCard extends StatelessWidget {
-  final Map<String, bool?> flags;
-  final void Function(String key, bool val) onToggle;
-
-  const _FirestoreFlagsCard({
-    required this.flags,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final modules = [
-      {'key': 'all', 'label': 'Semua Modul (Override Global)'},
-      {'key': 'customers', 'label': 'Pelanggan (Customers)'},
-      {'key': 'categories', 'label': 'Kategori (Categories)'},
-      {'key': 'products', 'label': 'Produk (Products)'},
-      {'key': 'transactions', 'label': 'Transaksi & Bon (Transactions)'},
-      {'key': 'expenses', 'label': 'Pengeluaran (Expenses)'},
-      {'key': 'dashboard', 'label': 'Dashboard & Ringkasan Harian'},
-      {'key': 'cigarettes', 'label': 'Laporan Rokok (Cigarettes)'},
-    ];
-
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.cloud_done, size: 20, color: AppColors.brand600),
-                SizedBox(width: 8),
-                Text(
-                  'CLOUD FIRESTORE (PRODUCTION & FEATURE FLAGS)',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: AppColors.gray800,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Secara default seluruh modul kini beroperasi di Cloud Firestore. Anda dapat mengalihkan sementara modul ke REST API (Laravel) untuk keperluan pengujian atau rollback darurat. Perubahan disimpan ke preferensi lokal.',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-            ),
-            const Divider(height: 24),
-            ...modules.map((m) {
-              final key = m['key']!;
-              final label = m['label']!;
-              final bool isEnabled;
-              switch (key) {
-                case 'all':
-                  isEnabled = FeatureFlags.useFirestoreAll;
-                  break;
-                case 'customers':
-                  isEnabled = FeatureFlags.useFirestoreCustomers;
-                  break;
-                case 'categories':
-                  isEnabled = FeatureFlags.useFirestoreCategories;
-                  break;
-                case 'products':
-                  isEnabled = FeatureFlags.useFirestoreProducts;
-                  break;
-                case 'transactions':
-                  isEnabled = FeatureFlags.useFirestoreTransactions;
-                  break;
-                case 'expenses':
-                  isEnabled = FeatureFlags.useFirestoreExpenses;
-                  break;
-                case 'dashboard':
-                  isEnabled = FeatureFlags.useFirestoreDashboard;
-                  break;
-                case 'cigarettes':
-                  isEnabled = FeatureFlags.useFirestoreCigarettes;
-                  break;
-                default:
-                  isEnabled = false;
-              }
-
-              return SwitchListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: key == 'all' ? FontWeight.w700 : FontWeight.normal,
-                    color: key == 'all' ? AppColors.brand600 : AppColors.textMain,
-                  ),
-                ),
-                subtitle: Text(
-                  isEnabled ? 'Cloud Firestore (Aktif)' : 'Laravel REST API (Fallback)',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isEnabled ? Colors.green.shade700 : AppColors.brand600,
-                  ),
-                ),
-                value: isEnabled,
-                onChanged: (val) => onToggle(key, val),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-}
-

@@ -92,12 +92,19 @@ class CustomerProvider extends ChangeNotifier with LoadableState {
       if (idx != -1) customers[idx] = updated;
       return updated.isActive ? 'diaktifkan' : 'dinonaktifkan';
     } catch (e) {
+      error = ApiClient.errorMessage(
+        e,
+        fallback: 'Gagal mengubah status pelanggan.',
+      );
       return null;
     } finally {
       togglingId = null;
       notifyListeners();
     }
   }
+
+  Future<List<TransactionSummary>> transactions(int customerId) =>
+      _repo.transactions(customerId);
 
   Future<String?> delete(Customer c) async {
     try {

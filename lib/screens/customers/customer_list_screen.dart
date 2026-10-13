@@ -6,12 +6,14 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../utils/format.dart';
 import '../../widgets/widgets.dart';
+import '../bon/bon_detail_screen.dart';
 import 'customer_form_screen.dart';
 
 /// Daftar Pelanggan — meniru `pages/customers/CustomerList.jsx`.
 /// Search (debounce), filter Aktif/Semua (default Aktif), toggle aktif,
-/// edit → navigasi, hapus → confirm dialog, toasts.
+/// edit → navigasi, hapus → confirm dialog, klik nama → riwayat bon.
 class CustomerListScreen extends StatefulWidget {
   const CustomerListScreen({super.key});
 
@@ -57,11 +59,16 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   }
 
   Future<void> _toggleActive(Customer c) async {
-    final action = await context.read<CustomerProvider>().toggleActive(c);
+    final prov = context.read<CustomerProvider>();
+    final action = await prov.toggleActive(c);
     if (action != null && mounted) {
       showToast(context, 'Pelanggan "${c.name}" berhasil $action.');
     } else if (action == null && mounted) {
-      showToast(context, 'Gagal mengubah status pelanggan.', error: true);
+      showToast(
+        context,
+        prov.error ?? 'Gagal mengubah status pelanggan.',
+        error: true,
+      );
     }
   }
 
@@ -69,7 +76,125 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CustomerFormScreen(customerId: id),
-        settings: RouteSettings(name: '/pelanggan/form'),
+        settings: const RouteSettings(name: '/pelanggan/form'),
+      ),
+    );
+  }
+
+  void _showCustomerHistory(Customer c) {
+    final future = context.read<CustomerProvider>().transactions(c.id);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.35,
+        builder: (_, scrollCtrl) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Riwayat Bon: ${c.name}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const Divider(height: 16),
+              Expanded(
+                child: FutureBuilder<List<TransactionSummary>>(
+                  future: future,
+                  builder: (context, snap) {
+                    if (snap.connectionState == ConnectionState.waiting) {
+                      return const LoadingState(
+                        text: 'Memuat riwayat bon...',
+                      );
+                    }
+                    if (snap.hasError) {
+                      return InlineMessage('Gagal memuat riwayat: ${snap.error}');
+                    }
+                    final list = snap.data ?? const [];
+                    if (list.isEmpty) {
+                      return const EmptyState(
+                        title: 'Belum ada riwayat bon.',
+                        subtitle:
+                            'Pelanggan ini belum memiliki catatan transaksi.',
+                      );
+                    }
+                    return ListView.separated(
+                      controller: scrollCtrl,
+                      itemCount: list.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, idx) {
+                        final t = list[idx];
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            t.transactionNumber,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textMain,
+                            ),
+                          ),
+                          subtitle: Text(
+                            formatDate(t.transactionDate),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                formatRupiah(t.totalAmount),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMain,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              StatusBadge.payment(t.paymentStatus ?? 'unpaid'),
+                            ],
+                          ),
+                          onTap: () {
+                            Navigator.of(ctx).pop();
+                            Navigator.of(this.context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    BonDetailScreen(transactionId: t.id),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -161,6 +286,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
           return _CustomerTile(
             customer: c,
             toggling: prov.togglingId == c.id,
+            onTapHistory: () => _showCustomerHistory(c),
             onEdit: () => _openForm(id: c.id),
             onToggle: () => _toggleActive(c),
             onDelete: () => _confirmDelete(c),
@@ -174,6 +300,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
 class _CustomerTile extends StatelessWidget {
   final Customer customer;
   final bool toggling;
+  final VoidCallback onTapHistory;
   final VoidCallback onEdit;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
@@ -181,6 +308,7 @@ class _CustomerTile extends StatelessWidget {
   const _CustomerTile({
     required this.customer,
     required this.toggling,
+    required this.onTapHistory,
     required this.onEdit,
     required this.onToggle,
     required this.onDelete,
@@ -197,13 +325,7 @@ class _CustomerTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 GestureDetector(
-                  onTap: () {
-                    // klik nama → riwayat bon pelanggan
-                    showToast(
-                      context,
-                      'Melihat bon pelanggan: ${customer.name}',
-                    );
-                  },
+                  onTap: onTapHistory,
                   child: Text(
                     customer.name,
                     style: const TextStyle(
@@ -228,11 +350,13 @@ class _CustomerTile extends StatelessWidget {
           const SizedBox(width: 8),
           PopupMenuButton<String>(
             onSelected: (v) {
+              if (v == 'history') onTapHistory();
               if (v == 'edit') onEdit();
               if (v == 'toggle') onToggle();
               if (v == 'delete') onDelete();
             },
             itemBuilder: (_) => [
+              const PopupMenuItem(value: 'history', child: Text('Riwayat Bon')),
               const PopupMenuItem(value: 'edit', child: Text('Edit')),
               PopupMenuItem(
                 value: 'toggle',
@@ -251,6 +375,3 @@ class _CustomerTile extends StatelessWidget {
     );
   }
 }
-
-/// Debouncer sederhana untuk pencarian (meniru `setTimeout(fetch, 350)`).
-/// Dipindah ke `widgets/widgets.dart` agar bisa dipakai lintas layar.

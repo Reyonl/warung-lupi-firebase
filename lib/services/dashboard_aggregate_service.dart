@@ -1,36 +1,5 @@
-/// Ringkasan statistik dashboard (porting dari Laravel [DashboardController]).
-class DashboardStatsResult {
-  final int bonHariIni;
-  final int totalHariIni;
-  final int lunasHariIni;
-  final int lunasTotal;
-  final int masihHutang;
-  final int pengeluaranHariIni;
-  final int pengeluaranTotal;
-  final int totalPelanggan;
-
-  const DashboardStatsResult({
-    required this.bonHariIni,
-    required this.totalHariIni,
-    required this.lunasHariIni,
-    required this.lunasTotal,
-    required this.masihHutang,
-    required this.pengeluaranHariIni,
-    required this.pengeluaranTotal,
-    required this.totalPelanggan,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'bon_hari_ini': bonHariIni,
-        'total_hari_ini': totalHariIni,
-        'lunas_hari_ini': lunasHariIni,
-        'lunas_total': lunasTotal,
-        'masih_hutang': masihHutang,
-        'pengeluaran_hari_ini': pengeluaranHariIni,
-        'pengeluaran_total': pengeluaranTotal,
-        'total_pelanggan': totalPelanggan,
-      };
-}
+import '../models/models.dart';
+import '../providers/repositories.dart';
 
 /// Dokumen ringkasan harian untuk koleksi `daily_summary/{yyyy-MM-dd}`.
 class DailySummaryDocument {
@@ -66,7 +35,7 @@ class DailySummaryDocument {
       };
 }
 
-/// Service agregasi dashboard & daily summary (porting dari [DashboardController]).
+/// Service agregasi dashboard & daily summary.
 class DashboardAggregateService {
   DashboardAggregateService._();
 
@@ -86,7 +55,9 @@ class DashboardAggregateService {
       final int total = totalRaw is num
           ? totalRaw.toInt()
           : (int.tryParse(totalRaw?.toString() ?? '0') ?? 0);
-      final status = (tx['payment_status'] ?? tx['paymentStatus'])?.toString().toLowerCase();
+      final status = (tx['payment_status'] ?? tx['paymentStatus'])
+          ?.toString()
+          .toLowerCase();
 
       saleTotal += total;
       saleCount++;
@@ -130,11 +101,12 @@ class DashboardAggregateService {
   }
 
   /// Menghitung statistik lengkap dashboard dari seluruh transaksi & pengeluaran.
-  static DashboardStatsResult computeDashboardStats({
+  static DashboardData computeDashboardStats({
     required String todayDateStr,
     required List<Map<String, dynamic>> allTransactions,
     required List<Map<String, dynamic>> allExpenses,
     required int activeCustomersCount,
+    List<TransactionSummary> recent = const [],
   }) {
     int countToday = 0;
     int totalToday = 0;
@@ -148,7 +120,9 @@ class DashboardAggregateService {
       final int total = totalRaw is num
           ? totalRaw.toInt()
           : (int.tryParse(totalRaw?.toString() ?? '0') ?? 0);
-      final payStatus = (tx['payment_status'] ?? tx['paymentStatus'])?.toString().toLowerCase();
+      final payStatus = (tx['payment_status'] ?? tx['paymentStatus'])
+          ?.toString()
+          .toLowerCase();
 
       final isToday = txDate == todayDateStr;
 
@@ -183,7 +157,7 @@ class DashboardAggregateService {
       }
     }
 
-    return DashboardStatsResult(
+    return DashboardData(
       bonHariIni: countToday,
       totalHariIni: totalToday,
       lunasHariIni: lunasHariIni,
@@ -192,6 +166,7 @@ class DashboardAggregateService {
       pengeluaranHariIni: todayExpense,
       pengeluaranTotal: totalExpense,
       totalPelanggan: activeCustomersCount,
+      recent: recent,
     );
   }
 }
