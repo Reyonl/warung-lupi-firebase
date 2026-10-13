@@ -1354,3 +1354,93 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
     );
   }
 }
+
+// ==========================================
+// 8. FIRESTORE BACKUP SERVICE (EXPORT JSON)
+// ==========================================
+class FirestoreBackupService {
+  FirestoreBackupService._();
+
+  static dynamic _toJsonSafe(dynamic v) {
+    if (v == null || v is num || v is bool || v is String) return v;
+    if (v is Timestamp) return v.toDate().toIso8601String();
+    if (v is DateTime) return v.toIso8601String();
+    if (v is FieldValue) return null;
+    if (v is Map) {
+      return {
+        for (final e in v.entries)
+          if (e.value is! FieldValue) e.key.toString(): _toJsonSafe(e.value),
+      };
+    }
+    if (v is Iterable) {
+      return v.where((x) => x is! FieldValue).map(_toJsonSafe).toList();
+    }
+    return v.toString();
+  }
+
+  /// Mengekspor seluruh koleksi Firestore (termasuk cache/overlay offline) ke Map siap-JSON.
+  static Future<Map<String, dynamic>> exportAllData([
+    FirebaseFirestore? customDb,
+  ]) async {
+    final db = _db(customDb);
+
+    final customers = await _getColEntries(db.collection('customers'));
+    final categories = await _getColEntries(db.collection('categories'));
+    final products = await _getColEntries(db.collection('products'));
+    final transactions = await _getColEntries(db.collection('transactions'));
+    final expenses = await _getColEntries(db.collection('expenses'));
+    final counters = await _getColEntries(db.collection('counters'));
+
+    final txList = <Map<String, dynamic>>[];
+    for (final tx in transactions) {
+      final items = await _getTxItemEntries(
+        db.collection('transactions').doc(tx.id),
+        preferCache: true,
+      );
+      txList.add({
+        '_docId': tx.id,
+        ...(_toJsonSafe(tx.data) as Map<String, dynamic>),
+        'items': items
+            .map(
+              (it) => {
+                '_docId': it.id,
+                ...(_toJsonSafe(it.data) as Map<String, dynamic>),
+              },
+            )
+            .toList(),
+      });
+    }
+
+    List<Map<String, dynamic>> mapEntries(List<_DocEntry> entries) {
+      return entries
+          .map(
+            (e) => {
+              '_docId': e.id,
+              ...(_toJsonSafe(e.data) as Map<String, dynamic>),
+            },
+          )
+          .toList();
+    }
+
+    return {
+      'app': 'Warung Lupi',
+      'exportedAt': DateTime.now().toIso8601String(),
+      'counts': {
+        'customers': customers.length,
+        'categories': categories.length,
+        'products': products.length,
+        'transactions': txList.length,
+        'expenses': expenses.length,
+      },
+      'data': {
+        'customers': mapEntries(customers),
+        'categories': mapEntries(categories),
+        'products': mapEntries(products),
+        'transactions': txList,
+        'expenses': mapEntries(expenses),
+        'counters': mapEntries(counters),
+      },
+    };
+  }
+}
+

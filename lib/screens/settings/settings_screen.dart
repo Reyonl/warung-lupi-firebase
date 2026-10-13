@@ -1,9 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/config/feature_flags.dart';
 import '../../core/storage/prefs.dart';
 import '../../core/theme/app_theme.dart';
+import '../../repositories/firestore_repositories.dart';
 import '../../services/printer_service.dart';
 import '../../widgets/widgets.dart';
 
@@ -42,6 +48,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _testingServer = false;
   String? _serverError;
   String? _serverSuccess;
+
+  // Backup JSON
+  bool _exportingBackup = false;
+  String? _backupError;
+  String? _backupSuccess;
 
   // Feature flags Firestore
   Map<String, bool?> _firestoreFlags = {};
@@ -236,6 +247,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await Prefs.setThermalSize(v);
   }
 
+  Future<void> _exportBackup() async {
+    if (_exportingBackup) return;
+    setState(() {
+      _exportingBackup = true;
+      _backupError = null;
+      _backupSuccess = null;
+    });
+    try {
+      final payload = await FirestoreBackupService.exportAllData();
+      final jsonStr = const JsonEncoder.withIndent('  ').convert(payload);
+      final now = DateTime.now();
+      final stamp =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/warung_lupi_backup_$stamp.json');
+      await file.writeAsString(jsonStr);
+
+      await Share.shareXFiles([
+        XFile(file.path, mimeType: 'application/json'),
+      ], text: 'Backup Data Warung Lupi ($stamp)');
+
+      final counts = payload['counts'] as Map<String, dynamic>? ?? const {};
+      if (mounted) {
+        setState(() {
+          _backupSuccess =
+              'File backup berhasil dibuat (${counts['customers'] ?? 0} pelanggan, '
+              '${counts['products'] ?? 0} item, ${counts['transactions'] ?? 0} bon, '
+              '${counts['expenses'] ?? 0} pengeluaran).';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _backupError = 'Gagal membuat backup: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _exportingBackup = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -263,6 +313,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (_loadingPrefs)
                 const LoadingState(text: 'Memuat pengaturan...')
               else ...[
+                _BackupCard(
+                  exporting: _exportingBackup,
+                  error: _backupError,
+                  success: _backupSuccess,
+                  onExport: _exportBackup,
+                ),
+                const SizedBox(height: 16),
                 _ServerCard(
                   controller: _serverCtrl,
                   activeUrl: ApiClient.activeBaseUrl,
@@ -300,6 +357,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BackupCard extends StatelessWidget {
+  final bool exporting;
+  final String? error;
+  final String? success;
+  final VoidCallback onExport;
+
+  const _BackupCard({
+    required this.exporting,
+    required this.error,
+    required this.success,
+    required this.onExport,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.backup_outlined, size: 18, color: AppColors.brand600),
+              SizedBox(width: 8),
+              Text(
+                'BACKUP DATA (GOOGLE DRIVE / FILE JSON)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: AppColors.gray800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (error != null) InlineMessage(error!),
+          if (success != null) InlineMessage(success!, isError: false),
+          const Text(
+            'Ekspor seluruh data warung (Pelanggan, Kategori, Item, Riwayat Bon beserta detail item, dan Pengeluaran) menjadi file .json untuk disimpan ke Google Drive, WhatsApp, atau memori HP.',
+            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 12),
+          BrandButton(
+            label: exporting
+                ? 'Menyiapkan File Backup...'
+                : 'Backup & Simpan ke Google Drive (.json)',
+            loading: exporting,
+            onPressed: exporting ? null : onExport,
+            expand: true,
+          ),
+        ],
       ),
     );
   }
