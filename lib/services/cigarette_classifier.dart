@@ -4,7 +4,50 @@ import '../models/models.dart';
 class CigaretteClassifier {
   CigaretteClassifier._();
 
-  static const List<String> keywords = ['rokok'];
+  static const List<String> keywords = [
+    'rokok',
+    'surya',
+    'sampoerna',
+    's.prima',
+    's. prima',
+    'sprima',
+    's.mild',
+    's mild',
+    'smild',
+    'magnum',
+    'mg. max',
+    'mg. bintang',
+    'djarum',
+    'super 12',
+    'super 16',
+    'evo biru',
+    'evo bold',
+    'marlboro',
+    'esse',
+    'camel',
+    'clas mild',
+    'class mild',
+    'classmild',
+    '76 royal',
+    '76 madu',
+    '76 filter',
+    '76 kurma',
+    '76 ',
+    'gg. filter',
+    'gg filter',
+    'gudang garam',
+    'samsu',
+    'dji sam soe',
+    'ji sam su',
+    'on bold',
+    'diplomat',
+    'gajah baru',
+    'la bold',
+    'la lights',
+    'dunhill',
+    'juara',
+    'win mild',
+  ];
 
   /// Normalisasi teks: lowercase, trim, spasi ganda dirapikan menjadi satu.
   static String normalize(String? value) {

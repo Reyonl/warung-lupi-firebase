@@ -290,12 +290,14 @@ class TransactionItem {
   Map<String, dynamic> toDocument() => {
     'productId': productId != null ? 'legacy_$productId' : null,
     'productName': productName,
+    'product_name': productName,
     'description': (description == null || description!.isEmpty)
         ? null
         : description,
     'quantity': quantity,
     'unit': unit,
     'unitPrice': unitPrice,
+    'unit_price': unitPrice,
     'subtotal': subtotal,
     if (id > 0) 'legacyId': id,
   };
@@ -418,11 +420,16 @@ class Transaction {
   Map<String, dynamic> toDocument() => {
     'customerId': customerId != null ? 'legacy_$customerId' : null,
     'customerName': customer?.name,
+    'customer_name': customer?.name,
     'number': transactionNumber,
+    'transaction_number': transactionNumber,
     'date': transactionDate,
+    'transaction_date': transactionDate,
     'totalAmount': totalAmount,
+    'total_amount': totalAmount,
     'status': status,
     'paymentStatus': paymentStatus,
+    'payment_status': paymentStatus,
     'notes': (notes == null || notes!.isEmpty) ? null : notes,
     'itemCount': items.length,
     if (id > 0) 'legacyId': id,
@@ -446,7 +453,7 @@ class Transaction {
         (doc['date'] ?? doc['transaction_date'] ?? '').toString();
     final dateStr = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
 
-    final custName = doc['customerName'] as String?;
+    final custName = (doc['customerName'] ?? doc['customer_name']) as String?;
     final resolvedCustomer = customer ??
         (custName != null && custName.isNotEmpty
             ? Customer(
@@ -530,7 +537,8 @@ class TransactionSummary {
       totalAmount: numFrom(doc['totalAmount'] ?? doc['total_amount']),
       status: (doc['status'] ?? 'draft') as String,
       paymentStatus: doc['paymentStatus'] as String?,
-      customerName: customerName ?? (doc['customerName'] as String?),
+      customerName: customerName ??
+          ((doc['customerName'] ?? doc['customer_name']) as String?),
     );
   }
 }

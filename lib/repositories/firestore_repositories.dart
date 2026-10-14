@@ -164,11 +164,11 @@ Future<void> _setDocSafe(
 }) async {
   final cName = colName ?? ref.parent.id;
   _OfflineOverlay.putDoc(cName, ref.id, data);
-  final waitMs = _isLikelyOffline ? 60 : 300;
+  final waitMs = _isLikelyOffline ? 1000 : 2500;
   try {
     final future = options != null ? ref.set(data, options) : ref.set(data);
     await future.timeout(Duration(milliseconds: waitMs));
-    if (!_isLikelyOffline) _markOnline();
+    _markOnline();
   } catch (_) {
     _markOffline();
   }
@@ -182,17 +182,17 @@ Future<void> _updateDocSafe(
 }) async {
   final cName = colName ?? ref.parent.id;
   _OfflineOverlay.putDoc(cName, ref.id, data);
-  final waitMs = _isLikelyOffline ? 60 : 300;
+  final waitMs = _isLikelyOffline ? 1000 : 2500;
   try {
     await ref.update(data).timeout(Duration(milliseconds: waitMs));
-    if (!_isLikelyOffline) _markOnline();
+    _markOnline();
   } catch (_) {
     _markOffline();
     // Jika dokumen baru dibuat secara lokal atau update gagal, pastikan set merge tertulis ke cache
     try {
       await ref
           .set(data, SetOptions(merge: true))
-          .timeout(const Duration(milliseconds: 60));
+          .timeout(const Duration(milliseconds: 500));
     } catch (_) {}
   }
 }
@@ -204,10 +204,10 @@ Future<void> _deleteDocSafe(
 }) async {
   final cName = colName ?? ref.parent.id;
   _OfflineOverlay.deleteDoc(cName, ref.id);
-  final waitMs = _isLikelyOffline ? 60 : 300;
+  final waitMs = _isLikelyOffline ? 1000 : 2500;
   try {
     await ref.delete().timeout(Duration(milliseconds: waitMs));
-    if (!_isLikelyOffline) _markOnline();
+    _markOnline();
   } catch (_) {
     _markOffline();
   }
@@ -766,25 +766,70 @@ class FirestoreTransactionRepository implements TransactionRepository {
     final newId = DateTime.now().millisecondsSinceEpoch;
     final docRef = _col.doc('tx_$newId');
 
-    // Penomoran bon instan (online & offline) tanpa db.runTransaction yang memblokir antrean saat offline
+    final counterDocId = InvoiceNumberService.counterDocId(transactionDate);
+    final counterRef = db.collection('counters').doc(counterDocId);
+
+    // Penomoran bon instan (online & offline) via daily counter doc (O(1)),
+    // fallback ke query hanya transaksi hari ini jika counter doc belum ada.
     int nextSeq = 1;
     try {
-      final allTx = await _getColEntries(_col, preferCache: true);
-      int sameDayCount = 0;
-      for (final e in allTx) {
-        final dStr = (e.data['date'] ?? e.data['transaction_date'] ?? '').toString();
-        if (dStr.startsWith(transactionDate)) {
-          sameDayCount++;
-          final numStr = (e.data['number'] ?? e.data['transaction_number'] ?? '').toString();
-          final parts = numStr.split('-');
-          if (parts.length >= 3) {
-            final parsed = int.tryParse(parts.last) ?? 0;
-            if (parsed >= nextSeq) nextSeq = parsed + 1;
-          }
+      // 1. Cek overlay memori terlebih dahulu (0ms)
+      final memCounter = _OfflineOverlay.cols['counters']?[counterDocId];
+      if (memCounter != null && memCounter.containsKey('currentSequence')) {
+        nextSeq = ((memCounter['currentSequence'] as num?)?.toInt() ?? 0) + 1;
+      } else {
+        // 2. Cek dokumen counter di Firestore (cache dulu, lalu server cepat)
+        DocumentSnapshot<Map<String, dynamic>>? snap;
+        try {
+          snap = await counterRef.get(const GetOptions(source: Source.cache));
+        } catch (_) {}
+        if (snap == null || !snap.exists || snap.data() == null) {
+          try {
+            snap = await counterRef.get().timeout(const Duration(milliseconds: 1200));
+          } catch (_) {}
         }
-      }
-      if (sameDayCount >= nextSeq) {
-        nextSeq = sameDayCount + 1;
+        if (snap != null && snap.exists && snap.data() != null) {
+          final seq = (snap.data()!['currentSequence'] as num?)?.toInt() ?? 0;
+          nextSeq = seq + 1;
+          _OfflineOverlay.cacheDocFromFirestore('counters', counterDocId, snap.data()!);
+        } else {
+          // 3. Fallback: jika counter belum ada (hari baru / migrasi awal),
+          // query HANYA transaksi untuk hari ini (BUKAN seluruh tabel transaksi)
+          var todayDocs = await _getQueryDocsSafe(
+            _col.where('date', isEqualTo: transactionDate),
+            preferCache: true,
+          );
+          if (todayDocs.isEmpty) {
+            todayDocs = await _getQueryDocsSafe(
+              _col.where('transaction_date', isEqualTo: transactionDate),
+              preferCache: true,
+            );
+          }
+          int maxSeq = 0;
+          for (final d in todayDocs) {
+            final numStr = (d.data()['number'] ?? d.data()['transaction_number'] ?? '').toString();
+            final parts = numStr.split('-');
+            if (parts.length >= 3) {
+              final parsed = int.tryParse(parts.last) ?? 0;
+              if (parsed > maxSeq) maxSeq = parsed;
+            }
+          }
+          final memTx = _OfflineOverlay.cols['transactions'];
+          if (memTx != null) {
+            for (final e in memTx.values) {
+              final dStr = (e['date'] ?? e['transaction_date'] ?? '').toString();
+              if (dStr.startsWith(transactionDate)) {
+                final numStr = (e['number'] ?? e['transaction_number'] ?? '').toString();
+                final parts = numStr.split('-');
+                if (parts.length >= 3) {
+                  final parsed = int.tryParse(parts.last) ?? 0;
+                  if (parsed > maxSeq) maxSeq = parsed;
+                }
+              }
+            }
+          }
+          nextSeq = maxSeq + 1;
+        }
       }
     } catch (_) {}
 
@@ -793,10 +838,8 @@ class FirestoreTransactionRepository implements TransactionRepository {
       nextSeq,
     );
 
-    // Sinkronkan counter ke Firestore di background (non-blocking)
-    final counterRef = db
-        .collection('counters')
-        .doc(InvoiceNumberService.counterDocId(transactionDate));
+    // Sinkronkan counter ke overlay dan Firestore
+    _OfflineOverlay.putDoc('counters', counterDocId, {'currentSequence': nextSeq});
     _setDocSafe(
       counterRef,
       {'currentSequence': nextSeq},
@@ -822,11 +865,16 @@ class FirestoreTransactionRepository implements TransactionRepository {
       'legacyId': newId,
       'customerId': 'legacy_$customerId',
       'customerName': customerName,
+      'customer_name': customerName,
       'number': invoiceNumber,
+      'transaction_number': invoiceNumber,
       'date': transactionDate,
+      'transaction_date': transactionDate,
       'totalAmount': 0,
+      'total_amount': 0,
       'status': 'draft',
       'paymentStatus': 'unpaid',
+      'payment_status': 'unpaid',
       'type': 'sale',
       'notes': (notes == null || notes.isEmpty) ? null : notes,
       'itemCount': 0,
@@ -893,10 +941,19 @@ class FirestoreTransactionRepository implements TransactionRepository {
 
     final data = <String, dynamic>{
       if (customerId != null) 'customerId': 'legacy_$customerId',
-      if (customerName != null) 'customerName': customerName,
-      if (transactionDate != null) 'date': transactionDate,
+      if (customerName != null) ...{
+        'customerName': customerName,
+        'customer_name': customerName,
+      },
+      if (transactionDate != null) ...{
+        'date': transactionDate,
+        'transaction_date': transactionDate,
+      },
       if (status != null) 'status': status,
-      if (paymentStatus != null) 'paymentStatus': paymentStatus,
+      if (paymentStatus != null) ...{
+        'paymentStatus': paymentStatus,
+        'payment_status': paymentStatus,
+      },
       if (notes != null) 'notes': notes,
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -946,15 +1003,56 @@ class FirestoreTransactionRepository implements TransactionRepository {
     final itemDocId = 'item_$newItemId';
     final itemRef = txRef.collection('items').doc(itemDocId);
 
+    // Resolve categoryName jika ada produk atau cocok kata kunci rokok
+    String? catName;
+    if (productId != null) {
+      try {
+        final pEntry = await _findEntryById(
+          db.collection('products'),
+          productId,
+          prefix: 'prod',
+        );
+        if (pEntry != null) {
+          final catRaw =
+              pEntry.data['categoryId'] ?? pEntry.data['category_id'];
+          int? catId;
+          if (catRaw is int) {
+            catId = catRaw;
+          } else if (catRaw is String) {
+            catId = int.tryParse(
+              catRaw.replaceFirst(RegExp(r'^(legacy_|cat_)'), ''),
+            );
+          }
+          if (catId != null) {
+            final catEntry = await _findEntryById(
+              db.collection('categories'),
+              catId,
+              prefix: 'cat',
+            );
+            catName = catEntry?.data['name'] as String?;
+          }
+        }
+      } catch (_) {}
+    }
+    if (catName == null && CigaretteClassifier.textIsCigarette(productName)) {
+      catName = 'Rokok';
+    }
+
     final itemData = {
       'id': newItemId,
       'legacyId': newItemId,
       'productId': productId != null ? 'legacy_$productId' : null,
       'productName': productName,
+      'product_name': productName,
+      if (catName != null) ...{
+        'categoryName': catName,
+        'category_name': catName,
+      },
       'description': (description == null || description.isEmpty) ? null : description,
       'quantity': quantity,
       'unit': unit,
       'unitPrice': unitPrice,
+      'unit_price': unitPrice,
       'subtotal': calcSubtotal,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),

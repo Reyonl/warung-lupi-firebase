@@ -56,6 +56,42 @@ void main() {
         ),
         isTrue,
       );
+      // Brand keywords tanpa kata 'rokok'
+      expect(
+        CigaretteClassifier.isCigarette(
+          categoryName: null,
+          productName: 'SURYA 16',
+        ),
+        isTrue,
+      );
+      expect(
+        CigaretteClassifier.isCigarette(
+          categoryName: null,
+          productName: 'S. PRIMA',
+        ),
+        isTrue,
+      );
+      expect(
+        CigaretteClassifier.isCigarette(
+          categoryName: null,
+          productName: 'Mg. MAX',
+        ),
+        isTrue,
+      );
+      expect(
+        CigaretteClassifier.isCigarette(
+          categoryName: null,
+          productName: 'CAMEL KUNING',
+        ),
+        isTrue,
+      );
+      expect(
+        CigaretteClassifier.isCigarette(
+          categoryName: null,
+          productName: 'SAMSU REFFIL',
+        ),
+        isTrue,
+      );
     });
 
     test('isCigarette: Fallback to description', () {

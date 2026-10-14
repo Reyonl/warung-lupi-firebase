@@ -258,5 +258,61 @@ void main() {
         'Tidak bisa dihapus — masih ada item dalam kategori ini.',
       );
     });
+
+    test('Transaction.fromDocument & TransactionSummary.fromDocument resolve snake_case customer_name', () {
+      final docWithSnakeCase = {
+        'transaction_number': 'INV-20261014-005',
+        'transaction_date': '2026-10-14',
+        'customer_name': 'UNTUNG',
+        'total_amount': 75000,
+        'status': 'completed',
+        'payment_status': 'paid',
+      };
+
+      final tx = Transaction.fromDocument('tx_1001', docWithSnakeCase);
+      expect(tx.customer?.name, 'UNTUNG');
+      expect(tx.transactionNumber, 'INV-20261014-005');
+      expect(tx.totalAmount, 75000);
+      expect(tx.paymentStatus, 'paid');
+
+      final summary = TransactionSummary.fromDocument('tx_1001', docWithSnakeCase);
+      expect(summary.customerName, 'UNTUNG');
+      expect(summary.transactionNumber, 'INV-20261014-005');
+      expect(summary.totalAmount, 75000);
+    });
+
+    test('Transaction & TransactionItem toDocument output both camelCase and snake_case fields', () {
+      final tx = Transaction(
+        id: 55,
+        customerId: 10,
+        transactionNumber: 'INV-20261014-001',
+        transactionDate: '2026-10-14',
+        totalAmount: 50000,
+        status: 'draft',
+        paymentStatus: 'unpaid',
+        customer: Customer(id: 10, name: 'BUMDES', isActive: true),
+      );
+      final txDoc = tx.toDocument();
+      expect(txDoc['customerName'], 'BUMDES');
+      expect(txDoc['customer_name'], 'BUMDES');
+      expect(txDoc['number'], 'INV-20261014-001');
+      expect(txDoc['transaction_number'], 'INV-20261014-001');
+      expect(txDoc['date'], '2026-10-14');
+      expect(txDoc['transaction_date'], '2026-10-14');
+
+      final item = TransactionItem(
+        id: 200,
+        productName: 'SURYA 16',
+        quantity: 1,
+        unit: 'bks',
+        unitPrice: 38000,
+        subtotal: 38000,
+      );
+      final itemDoc = item.toDocument();
+      expect(itemDoc['productName'], 'SURYA 16');
+      expect(itemDoc['product_name'], 'SURYA 16');
+      expect(itemDoc['unitPrice'], 38000);
+      expect(itemDoc['unit_price'], 38000);
+    });
   });
 }
