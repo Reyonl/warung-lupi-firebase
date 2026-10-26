@@ -47,6 +47,23 @@ class CigaretteClassifier {
     'dunhill',
     'juara',
     'win mild',
+    'kretek',
+    'tembakau',
+    'tingwe',
+    'cerutu',
+    'sukun',
+    'sukor',
+    'aroma',
+    'red bold',
+    'in mild',
+    'inter',
+    'vanguard',
+    'chief',
+    'andalan',
+    'twizz',
+    'apache',
+    'sejati',
+    'grendel',
   ];
 
   /// Normalisasi teks: lowercase, trim, spasi ganda dirapikan menjadi satu.
@@ -102,8 +119,10 @@ class CigaretteClassifier {
       final status = tx['status']?.toString().toLowerCase();
       if (status != 'completed') return false;
 
-      final txDate =
+      final rawTxDate =
           tx['transaction_date']?.toString() ?? tx['date']?.toString() ?? '';
+      final txDate =
+          rawTxDate.length >= 10 ? rawTxDate.substring(0, 10) : rawTxDate;
       if (dateFrom != null &&
           dateFrom.isNotEmpty &&
           txDate.compareTo(dateFrom) < 0) {
@@ -143,7 +162,9 @@ class CigaretteClassifier {
           : int.tryParse(tx['id']?.toString() ?? '0') ?? 0;
       final txNumber =
           (tx['transaction_number'] ?? tx['number'] ?? '').toString();
-      final txDate = (tx['transaction_date'] ?? tx['date'] ?? '').toString();
+      final rawTxDate = (tx['transaction_date'] ?? tx['date'] ?? '').toString();
+      final txDate =
+          rawTxDate.length >= 10 ? rawTxDate.substring(0, 10) : rawTxDate;
       final rawCust =
           (tx['customer_name'] ?? tx['customerName'] ?? '').toString().trim();
       final customerName = rawCust.isEmpty ? 'Tanpa Nama' : rawCust;

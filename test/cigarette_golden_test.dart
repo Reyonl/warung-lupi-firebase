@@ -155,6 +155,31 @@ void main() {
       expect(report.bons.single.customerName, 'Pak RT');
       expect(report.items.single.productName, 'Sampoerna Mild 16');
     });
+
+    test('generateReport handles ISO/datetime string with timestamps in date range comparison', () {
+      final report = CigaretteClassifier.generateReport([
+        {
+          'id': 102,
+          'number': 'INV-20261026-001',
+          'date': '2026-10-26 14:35:00',
+          'customerName': 'Budi',
+          'status': 'completed',
+          'paymentStatus': 'paid',
+          'items': [
+            {
+              'productName': 'Kretek Sukun',
+              'quantity': 1,
+              'subtotal': 18000,
+            },
+          ],
+        },
+      ], dateFrom: '2026-10-26', dateTo: '2026-10-26');
+
+      expect(report.summary.cigaretteQuantity, 1);
+      expect(report.summary.cigaretteSales, 18000);
+      expect(report.bons.single.transactionDate, '2026-10-26');
+      expect(report.items.single.productName, 'Kretek Sukun');
+    });
   });
 
   group('Cigarette Report Golden Test (EC2 Fixture Comparison)', () {

@@ -13,7 +13,7 @@ int calculatePromoSubtotal(String name, int qty, int unitPrice) {
     final promoQty = qty ~/ 3;
     final remainder = qty % 3;
     subtotal = (promoQty * 5000) + (remainder * unitPrice);
-  } else if (['donat', 'nagasari', 'lemper', 'jajanan'].any(lower.contains)) {
+  } else if (['donat', 'nagasari', 'lemper', 'jajanan', 'sosis solo', 'sosis'].any(lower.contains)) {
     final promoQty = qty ~/ 2;
     final remainder = qty % 2;
     subtotal = (promoQty * 5000) + (remainder * unitPrice);
