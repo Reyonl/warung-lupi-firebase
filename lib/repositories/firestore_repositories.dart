@@ -1544,8 +1544,10 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
     // Filter status dan tanggal SEBELUM membaca subkoleksi items (mencegah N+1 di semua bon)
     final filteredTx = allTx.where((e) {
       if (e.data['status'] != 'completed') return false;
-      final txDate =
+      final rawTxDate =
           (e.data['date'] ?? e.data['transaction_date'] ?? '').toString();
+      final txDate =
+          rawTxDate.length >= 10 ? rawTxDate.substring(0, 10) : rawTxDate;
       if (dateFrom != null &&
           dateFrom.isNotEmpty &&
           txDate.compareTo(dateFrom) < 0) {
@@ -1557,10 +1559,9 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
         return false;
       }
       return true;
-    });
+    }).toList();
 
-    final txList = <Map<String, dynamic>>[];
-    for (final entry in filteredTx) {
+    final txList = await Future.wait(filteredTx.map((entry) async {
       final tx = Transaction.fromDocument(entry.id, entry.data);
       final txData = Map<String, dynamic>.from(entry.data);
       txData['id'] = tx.id;
@@ -1581,8 +1582,8 @@ class FirestoreCigaretteReportRepository implements CigaretteReportRepository {
         if (catName.isNotEmpty) d['categoryName'] = catName;
         return d;
       }).toList();
-      txList.add(txData);
-    }
+      return txData;
+    }));
 
     return CigaretteClassifier.generateReport(
       txList,

@@ -115,6 +115,12 @@ void main() {
       expect(calculatePromoSubtotal('Donat Coklat', 5, 1500), 11500);
       expect(calculatePromoSubtotal('nagasari', 4, 1500), 10000);
       expect(calculatePromoSubtotal('lemper ayam', 2, 1500), 5000);
+      expect(calculatePromoSubtotal('Donat', 2, 3000), 5000);
+      expect(calculatePromoSubtotal('Nagasari', 2, 3000), 5000);
+      expect(calculatePromoSubtotal('Lemper', 2, 3000), 5000);
+      expect(calculatePromoSubtotal('Sosis Solo', 2, 3000), 5000);
+      expect(calculatePromoSubtotal('sosis solo ayam', 3, 3000), 8000);
+      expect(calculatePromoSubtotal('Sosis', 2, 3000), 5000);
       expect(calculatePromoSubtotal('Jajanan pasar', 1, 1500), 1500);
     });
 

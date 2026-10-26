@@ -913,7 +913,7 @@ class _ItemFormCard extends StatelessWidget {
               const Padding(
                 padding: EdgeInsets.only(top: 2),
                 child: Text(
-                  'Promo berlaku: gorengan 3@5000 • donat/nagasari/lemper/jajanan 2@5000',
+                  'Promo berlaku: gorengan 3@5000 • donat/nagasari/lemper/sosis solo 2@5000',
                   style: TextStyle(fontSize: 11, color: AppColors.brand700),
                 ),
               ),
@@ -948,7 +948,7 @@ class _ItemFormCard extends StatelessWidget {
     final name = isManualItem ? manualNameCtrl.text : (formItem?.name ?? '');
     final lower = name.toLowerCase();
     return lower.contains('gorengan') ||
-        ['donat', 'nagasari', 'lemper', 'jajanan'].any(lower.contains);
+        ['donat', 'nagasari', 'lemper', 'jajanan', 'sosis solo', 'sosis'].any(lower.contains);
   }
 }
 
