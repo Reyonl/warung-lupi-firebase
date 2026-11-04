@@ -9,12 +9,12 @@ import 'expenses/expense_list_screen.dart';
 import 'products/category_list_screen.dart';
 import 'products/cigarette_report_screen.dart';
 import 'products/product_list_screen.dart';
+import 'reports/sales_report_screen.dart';
 import 'settings/settings_screen.dart';
 
-/// HomeShell — shell utama aplikasi.
-/// Meniru `Layout.jsx` v2: nav flat (tanpa tombol aksen oranye), brand
-/// chip "WL" + "Warung Lupi" (Lupi sky-blue), entri **Laporan Rokok**,
-/// dan footer "Sistem rekap warung".
+/// HomeShell — shell utama aplikasi (Material 3 Android Light Mode).
+/// Nav flat, brand chip "WL" + "Warung Lupi", NavigationBar 4 tab cepat di bawah,
+/// entri drawer lengkap, dan footer sistem.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -26,6 +26,7 @@ enum ShellPage {
   dashboard,
   bonCreate,
   bonList,
+  salesReport,
   customers,
   items,
   expense,
@@ -41,6 +42,7 @@ class _HomeShellState extends State<HomeShell> {
     ShellPage.dashboard: 'Ringkasan',
     ShellPage.bonCreate: 'Buat Bon',
     ShellPage.bonList: 'Riwayat Bon',
+    ShellPage.salesReport: 'Laporan Penjualan',
     ShellPage.customers: 'Pelanggan',
     ShellPage.items: 'Daftar Item',
     ShellPage.expense: 'Pengeluaran',
@@ -95,6 +97,24 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    int bottomNavIndex = 0;
+    switch (_page) {
+      case ShellPage.dashboard:
+        bottomNavIndex = 0;
+        break;
+      case ShellPage.bonCreate:
+        bottomNavIndex = 1;
+        break;
+      case ShellPage.bonList:
+        bottomNavIndex = 2;
+        break;
+      case ShellPage.salesReport:
+        bottomNavIndex = 3;
+        break;
+      default:
+        bottomNavIndex = 0;
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -116,6 +136,52 @@ class _HomeShellState extends State<HomeShell> {
       ),
       drawer: _buildDrawer(context),
       body: _buildPage(),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: bottomNavIndex,
+        indicatorColor: AppColors.brand100,
+        onDestinationSelected: (idx) {
+          switch (idx) {
+            case 0:
+              setState(() => _page = ShellPage.dashboard);
+              break;
+            case 1:
+              setState(() => _page = ShellPage.bonCreate);
+              break;
+            case 2:
+              setState(() => _page = ShellPage.bonList);
+              break;
+            case 3:
+              setState(() => _page = ShellPage.salesReport);
+              break;
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon:
+                Icon(Icons.dashboard, color: AppColors.brand700),
+            label: 'Ringkasan',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.add_box_outlined),
+            selectedIcon:
+                Icon(Icons.add_box, color: AppColors.brand700),
+            label: 'Buat Bon',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon:
+                Icon(Icons.receipt_long, color: AppColors.brand700),
+            label: 'Riwayat',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.analytics_outlined),
+            selectedIcon:
+                Icon(Icons.analytics, color: AppColors.brand700),
+            label: 'Laporan',
+          ),
+        ],
+      ),
     );
   }
 
@@ -171,6 +237,11 @@ class _HomeShellState extends State<HomeShell> {
                     'Riwayat Bon',
                     Icons.receipt_long_outlined,
                   ),
+                  item(
+                    ShellPage.salesReport,
+                    'Laporan Penjualan',
+                    Icons.analytics_outlined,
+                  ),
                   item(ShellPage.customers, 'Pelanggan', Icons.people_outline),
                   item(ShellPage.items, 'Item', Icons.inventory_2_outlined),
                   item(
@@ -223,6 +294,8 @@ class _HomeShellState extends State<HomeShell> {
         return const BonCreateScreen();
       case ShellPage.bonList:
         return const BonListScreen(embedded: true);
+      case ShellPage.salesReport:
+        return const SalesReportScreen(embedded: true);
       case ShellPage.customers:
         return const CustomerListScreen();
       case ShellPage.items:

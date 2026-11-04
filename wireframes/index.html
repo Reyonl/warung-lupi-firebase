@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warung Lupi POS — Android Material 3 (Light Mode)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F1F5F9;
+      --card-bg: #FFFFFF;
+      --border: #E2E8F0;
+      --primary: #0284C7;
+      --primary-light: #E0F2FE;
+      --emerald: #16A34A;
+      --emerald-light: #DCFCE7;
+      --amber: #D97706;
+      --amber-light: #FEF3C7;
+      --text: #0F172A;
+      --text-muted: #64748B;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284C7, #0EA5E9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: #FFFFFF;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+    }
+    .brand-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+    .brand-title span { color: var(--primary); }
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .android-chip {
+      background: #E0F2FE;
+      color: #0369A1;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .nav-tabs {
+      display: flex;
+      background: #F8FAFC;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      gap: 4px;
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .nav-btn:hover {
+      color: var(--text);
+      background: #EDF2F7;
+    }
+    .nav-btn.active {
+      background: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .badge-emerald { background: var(--emerald-light); color: var(--emerald); }
+    .badge-amber { background: var(--amber-light); color: var(--amber); }
+
+    .main-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      gap: 36px;
+    }
+    .android-device {
+      width: 410px;
+      height: 870px;
+      background: #FFFFFF;
+      border-radius: 44px;
+      padding: 10px;
+      box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.18), 0 0 0 4px #CBD5E1, 0 0 0 8px #0F172A;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .android-camera-hole {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 14px;
+      height: 14px;
+      background: #0F172A;
+      border-radius: 50%;
+      z-index: 40;
+      border: 2px solid #334155;
+    }
+    .android-screen {
+      flex: 1;
+      background: #F8FAFC;
+      border-radius: 34px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid #E2E8F0;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+    .side-panel {
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card-info {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    }
+    .card-info h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-info p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .features-list {
+      margin-top: 14px;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .features-list li {
+      font-size: 13px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: #334155;
+    }
+    .features-list li span.dot {
+      color: var(--primary);
+      font-weight: bold;
+    }
+    .open-raw-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary-light);
+      border: 1px solid #BAE6FD;
+      color: var(--primary);
+      text-decoration: none;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 10px;
+      transition: all 0.15s;
+    }
+    .open-raw-btn:hover {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+    .badge-highlight {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      color: #15803D;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-logo">WL</div>
+      <div>
+        <div class="brand-title">Warung <span>Lupi</span> POS</div>
+        <div class="brand-subtitle">
+          Android Material 3
+          <span class="android-chip">📱 Android Only • Light Mode</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-btn" onclick="switchScreen('screen1_dashboard.html', this, 'Dashboard Android (Light Mode)')">
+        <span>📊 1. Dashboard</span>
+      </button>
+      <button class="nav-btn" onclick="switchScreen('screen2_kasir.html', this, 'Kasir Cepat & Buat Bon')">
+        <span>🛒 2. Kasir POS</span>
+        <span class="badge badge-emerald">2-Tap</span>
+      </button>
+      <button class="nav-btn" onclick="switchScreen('screen3_riwayat_bon.html', this, 'Riwayat & Struk Thermal 58mm')">
+        <span>🧾 3. Riwayat Bon</span>
+        <span class="badge badge-amber">Kasbon</span>
+      </button>
+      <button class="nav-btn active" onclick="switchScreen('screen4_laporan_detail.html', this, 'Laporan Penjualan Detail & Rekap Shift')">
+        <span>📈 4. Laporan Detail</span>
+        <span class="badge badge-emerald">Baru</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="main-stage">
+    <!-- Android Phone Frame -->
+    <div class="android-device">
+      <div class="android-camera-hole"></div>
+      <div class="android-screen">
+        <iframe id="preview-frame" src="screen4_laporan_detail.html"></iframe>
+      </div>
+    </div>
+
+    <!-- Side Guide Info -->
+    <div class="side-panel">
+      <div class="card-info">
+        <div class="badge-highlight" style="margin-bottom: 12px;">
+          ✓ Modul Laporan Penjualan Lengkap (Requested)
+        </div>
+        <h3 id="panel-title">📈 Laporan Penjualan Detail & Rekap Shift</h3>
+        <p id="panel-desc">
+          Modul komprehensif pelaporan kasir warung. Tidak hanya menampilkan rokok, kini merangkum omset kotor, potongan promo, biaya kulakan, kas bersih riil, kontribusi per kategori, serta top 5 produk terlaris.
+        </p>
+        <ul class="features-list" id="panel-features">
+          <li><span class="dot">✓</span> Filter rentang waktu: Hari Ini (04 Nov), Kemarin, 7 Hari, Bulan Ini, dan Kustom Kalender.</li>
+          <li><span class="dot">✓</span> Rekap Kas & Laba Bersih: Omset Rp 1.485.000, Pengeluaran Rp 320.000, Kas Bersih Rp 1.123.000.</li>
+          <li><span class="dot">✓</span> Breakdown Metode Bayar: Tunai (69%), QRIS (21%), Bon/Kasbon Belum Lunas (10%).</li>
+          <li><span class="dot">✓</span> Kontribusi Kategori: Rokok (42%), Gorengan (30%), Jajanan (15%), Minuman (12%), Sembako (1%).</li>
+          <li><span class="dot">✓</span> Top 5 Produk Terlaris berdasarkan kuantitas & rupiah terjual.</li>
+          <li><span class="dot">✓</span> Tombol Cetak Rekap Shift via Thermal Bluetooth 58mm & Share WhatsApp Pemilik.</li>
+        </ul>
+        <div style="margin-top: 14px;">
+          <a id="raw-link" class="open-raw-btn" href="screen4_laporan_detail.html" target="_blank">
+            Buka Layar Penuh di Tab Baru ↗
+          </a>
+        </div>
+      </div>
+
+      <div class="card-info">
+        <h3>💡 Standar Desain Android Terpasang</h3>
+        <p>
+          - <b>Android Material 3</b>: Light Mode murni, visual borders halus, status bar Android, Plus Jakarta Sans dengan tabular figures untuk nominal uang.<br>
+          - <b>Ekspor Fleksibel</b>: Dukungan ekspor data CSV/Excel yang sudah ada di codebase (tools/export_csv.js) + tombol cetak fisik thermal Bluetooth.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const screenDetails = {
+      'screen1_dashboard.html': {
+        title: '📊 Dashboard Android (Light Mode)',
+        desc: 'Tampilan terang berlatar putih bersih (#FFFFFF & #F8FAFC) dengan kontras tinggi (#0F172A). Menjamin teks, angka rupiah, dan status transaksi tetap terbaca tajam di meja kasir warung dalam kondisi terang siang hari.',
+        features: [
+          'Status Bar Android & Live Printer Bluetooth 58mm status chip (Emerald Green).',
+          'Kartu penjualan hari ini (Rp 1.485.000) dengan badge tren performa (+14% vs kemarin).',
+          'Quick dock aksi cepat jempol: Kasir Baru, Catat Biaya, Pelanggan, dan Cek Stok.',
+          'Transaksi terkini berstatus LUNAS (hijau) vs BELUM LUNAS (amber) + tombol cepat cetak struk.',
+          'Android Material 3 Bottom Navigation Bar dengan active pill indicator.'
+        ]
+      },
+      'screen2_kasir.html': {
+        title: '🛒 Kasir Cepat & Buat Bon (Point of Sale Android)',
+        desc: 'Mempertahankan 100% sistem alur kerja Warung Lupi yang sudah ada (Header Pelanggan/Tanggal/Catatan -> Form Input Item & Promo Otomatis -> List Item Bon -> Status Pembayaran -> Simpan Bon) dengan polesan antarmuka Android Material 3 Light Mode yang rapi, bersih, dan tanpa kurva belajar baru.',
+        features: [
+          'Customer chip selector: ganti instan antara Pelanggan Umum vs Langganan (Mbak Tami).',
+          'Kategori horizontal scrollable: Semua, Populer, Gorengan, Jajanan, Rokok, Minuman.',
+          'Dashed card: + Input Item Manual / Kustom untuk transaksi warung dadakan tanpa barcode.',
+          'Sticky Bottom Cart Sheet dengan toggle LUNAS vs BON/HUTANG dan shortcut pecahan uang pas.',
+          'Tombol cetak struk thermal Bluetooth langsung saat transaksi disimpan.'
+        ]
+      },
+      'screen3_riwayat_bon.html': {
+        title: '🧾 Riwayat Transaksi & Buku Bon Hutang (Light Mode)',
+        desc: 'Manajemen riwayat bon dan buku hutang pelanggan. Dilengkapi pratinjau slip kertas thermal 58mm fisik dengan teks monospace kasir serta tombol cetak Bluetooth & share WhatsApp.',
+        features: [
+          'Segmented tabs Android: Semua Bon (32), Lunas (28), dan Belum Lunas / Kasbon (4).',
+          'Banner Total Piutang Belum Lunas (Rp 310.000) dengan tombol Kirim Pengingat WA.',
+          'Kartu bon kasbon pelanggan dengan info jatuh tempo & tombol pintas Lunasi Sekarang.',
+          'Simulasi fisik slip struk thermal 58mm putih bergerigi lengkap dengan barcode kasir.'
+        ]
+      },
+      'screen4_laporan_detail.html': {
+        title: '📈 Laporan Penjualan Detail & Rekap Shift',
+        desc: 'Modul komprehensif pelaporan kasir warung. Merangkum omset kotor, potongan promo, biaya kulakan, kas bersih riil, kontribusi per kategori, serta top 5 produk terlaris.',
+        features: [
+          'Filter rentang waktu: Hari Ini (04 Nov), Kemarin, 7 Hari, Bulan Ini, dan Kustom Kalender.',
+          'Rekap Kas & Laba Bersih: Omset Rp 1.485.000, Pengeluaran Rp 320.000, Kas Bersih Rp 1.123.000.',
+          'Breakdown Metode Bayar: Tunai (69%), QRIS (21%), Bon/Kasbon Belum Lunas (10%).',
+          'Kontribusi Kategori: Rokok (42%), Gorengan (30%), Jajanan (15%), Minuman (12%), Sembako (1%).',
+          'Top 5 Produk Terlaris berdasarkan kuantitas & rupiah terjual.',
+          'Tombol Cetak Rekap Shift via Thermal Bluetooth 58mm & Share WhatsApp Pemilik.'
+        ]
+      }
+    };
+
+    function switchScreen(src, btn, title) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('preview-frame').src = src;
+      document.getElementById('raw-link').href = src;
+      
+      const info = screenDetails[src];
+      if (info) {
+        document.getElementById('panel-title').innerText = info.title;
+        document.getElementById('panel-desc').innerText = info.desc;
+        const list = document.getElementById('panel-features');
+        list.innerHTML = '';
+        info.features.forEach(f => {
+          const li = document.createElement('li');
+          li.innerHTML = '<span class="dot">✓</span> ' + f;
+          list.appendChild(li);
+        });
+      }
+    }
+  </script>
+</body>
+</html>

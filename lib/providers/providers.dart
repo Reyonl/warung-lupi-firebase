@@ -918,3 +918,40 @@ class BonDraftProvider extends ChangeNotifier {
     error = null;
   }
 }
+
+
+/// Provider laporan penjualan detail komprehensif.
+class SalesReportProvider extends ChangeNotifier with LoadableState {
+  SalesReportProvider(this._repo);
+
+  final SalesReportRepository _repo;
+
+  SalesReportData? report;
+  String dateFrom = today();
+  String dateTo = today();
+
+  bool get hasData => report != null;
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    notifyListeners();
+    try {
+      report = await _repo.report(
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+    } catch (e) {
+      error = ApiClient.errorMessage(e, fallback: 'Laporan penjualan gagal dimuat.');
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
+  void setDateRange(String from, String to) {
+    dateFrom = from;
+    dateTo = to;
+    load();
+  }
+}

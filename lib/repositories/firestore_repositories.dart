@@ -1736,3 +1736,161 @@ class FirestoreBackupService {
   }
 }
 
+
+
+// ==========================================
+// 8. FIRESTORE SALES REPORT REPOSITORY
+// ==========================================
+class FirestoreSalesReportRepository implements SalesReportRepository {
+  final FirebaseFirestore? _customDb;
+
+  FirestoreSalesReportRepository([this._customDb]);
+
+  FirebaseFirestore get db => _db(_customDb);
+
+  @override
+  Future<SalesReportData> report({
+    required String dateFrom,
+    required String dateTo,
+  }) async {
+    final allTxEntries = await _getColEntries(db.collection('transactions'));
+    final filteredTx = allTxEntries.where((e) {
+      final date = (e.data['transaction_date'] ?? e.data['date'])?.toString() ?? '';
+      if (date.isEmpty) return false;
+      if (dateFrom.isNotEmpty && date.compareTo(dateFrom) < 0) return false;
+      if (dateTo.isNotEmpty && date.compareTo(dateTo) > 0) return false;
+      final status = (e.data['status'] ?? '').toString().toLowerCase();
+      if (status == 'draft') return false;
+      return true;
+    }).toList();
+
+    final allExpEntries = await _getColEntries(db.collection('expenses'));
+    final filteredExp = allExpEntries.where((e) {
+      final date = (e.data['expense_date'] ?? e.data['date'])?.toString() ?? '';
+      if (date.isEmpty) return false;
+      if (dateFrom.isNotEmpty && date.compareTo(dateFrom) < 0) return false;
+      if (dateTo.isNotEmpty && date.compareTo(dateTo) > 0) return false;
+      return true;
+    }).toList();
+
+    final catEntries = await _getColEntries(db.collection('categories'), preferCache: true);
+    final catNameById = <int, String>{
+      for (final c in catEntries)
+        parseEntityId(c.id, c.data): (c.data['name'] ?? '').toString(),
+    };
+
+    final prodEntries = await _getColEntries(db.collection('products'), preferCache: true);
+    final prodCatMap = <String, String>{};
+    for (final p in prodEntries) {
+      final prod = Product.fromDocument(p.id, p.data);
+      if (prod.categoryId != null && catNameById.containsKey(prod.categoryId)) {
+        prodCatMap[prod.name.toLowerCase().trim()] = catNameById[prod.categoryId]!;
+      }
+    }
+
+    int grossSales = 0;
+    int promoDiscounts = 0;
+    int cashTotal = 0;
+    int nonCashTotal = 0;
+    int unpaidTotal = 0;
+
+    final catSalesMap = <String, ({int amount, int qty})>{};
+    final prodSalesMap = <String, ({int amount, int qty})>{};
+
+    for (final e in filteredTx) {
+      final tx = Transaction.fromDocument(e.id, e.data);
+      final paymentStatus = tx.paymentStatus.toLowerCase();
+      final notes = (tx.notes ?? '').toLowerCase();
+
+      if (paymentStatus == 'paid') {
+        if (notes.contains('qris') || notes.contains('transfer') || notes.contains('bca') || notes.contains('mandiri')) {
+          nonCashTotal += tx.totalAmount;
+        } else {
+          cashTotal += tx.totalAmount;
+        }
+      } else {
+        unpaidTotal += tx.totalAmount;
+      }
+
+      for (final item in tx.items) {
+        if (item.subtotal < 0 || item.unitPrice < 0) {
+          promoDiscounts += item.subtotal.abs();
+        } else {
+          grossSales += item.subtotal;
+
+          String catName = 'Lain-lain';
+          final pKey = item.productName.toLowerCase().trim();
+          if (prodCatMap.containsKey(pKey)) {
+            catName = prodCatMap[pKey]!;
+          } else if (pKey.contains('rokok') || pKey.contains('surya') || pKey.contains('sampoerna') || pKey.contains('marlboro') || pKey.contains('magnum') || pKey.contains('gudang garam') || pKey.contains('djarum')) {
+            catName = 'Rokok';
+          } else if (pKey.contains('kopi') || pKey.contains('es ') || pKey.contains('teh') || pKey.contains('nutrisari') || pKey.contains('aqua') || pKey.contains('le minerale')) {
+            catName = 'Minuman';
+          } else if (pKey.contains('gorengan') || pKey.contains('donat') || pKey.contains('lemper') || pKey.contains('nagasari') || pKey.contains('mie') || pKey.contains('nasi')) {
+            catName = 'Makanan';
+          }
+
+          final currentCat = catSalesMap[catName] ?? (amount: 0, qty: 0);
+          catSalesMap[catName] = (
+            amount: currentCat.amount + item.subtotal,
+            qty: currentCat.qty + item.quantity,
+          );
+
+          final currentProd = prodSalesMap[item.productName] ?? (amount: 0, qty: 0);
+          prodSalesMap[item.productName] = (
+            amount: currentProd.amount + item.subtotal,
+            qty: currentProd.qty + item.quantity,
+          );
+        }
+      }
+    }
+
+    int totalExpenses = 0;
+    for (final exp in filteredExp) {
+      final amountRaw = exp.data['amount'];
+      final int amount = amountRaw is num
+          ? amountRaw.toInt()
+          : (int.tryParse(amountRaw?.toString() ?? '0') ?? 0);
+      totalExpenses += amount;
+    }
+
+    final netSales = grossSales - promoDiscounts;
+    final netProfit = netSales - totalExpenses;
+
+    final categoryMetrics = catSalesMap.entries.map((entry) {
+      final percentage = grossSales > 0 ? (entry.value.amount / grossSales * 100) : 0.0;
+      return CategorySalesMetric(
+        categoryName: entry.key,
+        totalAmount: entry.value.amount,
+        totalQty: entry.value.qty,
+        percentage: percentage,
+      );
+    }).toList()
+      ..sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
+
+    final topProducts = prodSalesMap.entries.map((entry) {
+      return TopProductSalesMetric(
+        productName: entry.key,
+        quantity: entry.value.qty,
+        totalAmount: entry.value.amount,
+      );
+    }).toList()
+      ..sort((a, b) => b.quantity.compareTo(a.quantity));
+
+    return SalesReportData(
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+      totalTransactions: filteredTx.length,
+      grossSales: grossSales,
+      promoDiscounts: promoDiscounts,
+      netSales: netSales,
+      totalExpenses: totalExpenses,
+      netProfit: netProfit,
+      cashTotal: cashTotal,
+      nonCashTotal: nonCashTotal,
+      unpaidTotal: unpaidTotal,
+      categoryMetrics: categoryMetrics,
+      topProducts: topProducts.take(5).toList(),
+    );
+  }
+}

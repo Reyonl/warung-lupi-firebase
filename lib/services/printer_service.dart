@@ -341,6 +341,154 @@ class PrinterService {
     return Uint8List.fromList(bytes);
   }
 
+  Future<void> printShiftReport({
+    required SalesReportData report,
+    required String thermalSize,
+    required String printerName,
+    required String printerId,
+  }) async {
+    final mac = await resolveMac(
+      printerName: printerName,
+      printerId: printerId,
+    );
+    await _connect(mac);
+    try {
+      final bytes = buildShiftReportEscPos(report, thermalSize);
+      await _write(bytes);
+      await Future.delayed(const Duration(milliseconds: 600));
+    } finally {
+      await disconnect();
+    }
+  }
+
+  Uint8List buildShiftReportEscPos(SalesReportData report, String size) {
+    final maxChars = size == '80mm' ? 48 : 32;
+    final bytes = <int>[];
+
+    void addText(String s) => bytes.addAll(utf8.encode(s));
+    void addBytes(List<int> arr) => bytes.addAll(arr);
+
+    String rightAlign(String label, String value) {
+      final available = maxChars - label.length;
+      final padding = (available - value.length) < 1 ? 1 : (available - value.length);
+      return label + (' ' * padding) + value;
+    }
+
+    void boldOn() {
+      addBytes([0x1B, 0x45, 1]);
+      addBytes([0x1B, 0x47, 1]);
+    }
+
+    void boldOff() {
+      addBytes([0x1B, 0x45, 0]);
+      addBytes([0x1B, 0x47, 0]);
+    }
+
+    addBytes([0x1B, 0x40]);
+    addBytes([0x1B, 0x4D, 0x00]);
+
+    addBytes([0x1B, 0x61, 0x01]);
+    addBytes([0x1B, 0x21, 0x30]);
+    boldOn();
+    addText('WARUNG LUPI\n');
+    boldOff();
+    addBytes([0x1B, 0x21, 0x00]);
+    addText('Ke pasar membeli semangka\n');
+    addText('Pagedangan, Tangerang\n');
+    addText('-' * maxChars + '\n');
+    boldOn();
+    addText('REKAP LAPORAN PENJUALAN\n');
+    boldOff();
+    addText('Periode: ' + report.dateFrom + ' s/d ' + report.dateTo + '\n');
+    addText('-' * maxChars + '\n');
+
+    addBytes([0x1B, 0x61, 0x00]);
+    addText(rightAlign('Total Bon', report.totalTransactions.toString() + ' transaksi') + '\n');
+    addText(rightAlign('Omset Kotor', formatNumber(report.grossSales)) + '\n');
+    if (report.promoDiscounts > 0) {
+      addText(rightAlign('Diskon Promo', '-' + formatNumber(report.promoDiscounts)) + '\n');
+    }
+    addText(rightAlign('Omset Bersih', formatNumber(report.netSales)) + '\n');
+    addText(rightAlign('Pengeluaran', '-' + formatNumber(report.totalExpenses)) + '\n');
+    addText('-' * maxChars + '\n');
+
+    boldOn();
+    addBytes([0x1B, 0x21, 0x10]);
+    addText(rightAlign('PROFIT BERSIH', formatNumber(report.netProfit)) + '\n');
+    addBytes([0x1B, 0x21, 0x00]);
+    boldOff();
+    addText('-' * maxChars + '\n');
+
+    boldOn();
+    addText('METODE PEMBAYARAN:\n');
+    boldOff();
+    addText(rightAlign('Tunai', formatNumber(report.cashTotal)) + '\n');
+    addText(rightAlign('QRIS / Transfer', formatNumber(report.nonCashTotal)) + '\n');
+    addText(rightAlign('Kasbon (Hutang)', formatNumber(report.unpaidTotal)) + '\n');
+    addText('-' * maxChars + '\n');
+
+    if (report.topProducts.isNotEmpty) {
+      boldOn();
+      addText('PRODUK TERLARIS:\n');
+      boldOff();
+      int rank = 1;
+      for (final p in report.topProducts) {
+        addText(rightAlign(rank.toString() + '. ' + p.productName, p.quantity.toString() + ' pcs') + '\n');
+        addText(rightAlign('   Total', formatNumber(p.totalAmount)) + '\n');
+        rank++;
+      }
+      addText('-' * maxChars + '\n');
+    }
+
+    addBytes([0x1B, 0x61, 0x01]);
+    addText('Sistem Rekap Warung Lupi\n');
+    addText('Dicetak: ' + DateTime.now().toString().substring(0, 16) + '\n\n\n');
+
+    return Uint8List.fromList(bytes);
+  }
+
+  String generateShiftReportRawText(SalesReportData report) {
+    const maxChars = 32;
+    String rightAlign(String label, String value) {
+      final available = maxChars - label.length;
+      final padding = (available - value.length) < 1 ? 1 : (available - value.length);
+      return label + (' ' * padding) + value;
+    }
+
+    final sb = StringBuffer();
+    sb.writeln('WARUNG LUPI');
+    sb.writeln('REKAP LAPORAN PENJUALAN');
+    sb.writeln('Periode: ' + report.dateFrom + ' s/d ' + report.dateTo);
+    sb.writeln('--------------------------------');
+    sb.writeln(rightAlign('Total Bon', report.totalTransactions.toString() + ' transaksi'));
+    sb.writeln(rightAlign('Omset Kotor', formatNumber(report.grossSales)));
+    if (report.promoDiscounts > 0) {
+      sb.writeln(rightAlign('Diskon Promo', '-' + formatNumber(report.promoDiscounts)));
+    }
+    sb.writeln(rightAlign('Omset Bersih', formatNumber(report.netSales)));
+    sb.writeln(rightAlign('Pengeluaran', '-' + formatNumber(report.totalExpenses)));
+    sb.writeln('--------------------------------');
+    sb.writeln(rightAlign('PROFIT BERSIH', formatNumber(report.netProfit)));
+    sb.writeln('--------------------------------');
+    sb.writeln('METODE PEMBAYARAN:');
+    sb.writeln(rightAlign('Tunai', formatNumber(report.cashTotal)));
+    sb.writeln(rightAlign('QRIS / Transfer', formatNumber(report.nonCashTotal)));
+    sb.writeln(rightAlign('Kasbon (Hutang)', formatNumber(report.unpaidTotal)));
+    sb.writeln('--------------------------------');
+    if (report.topProducts.isNotEmpty) {
+      sb.writeln('PRODUK TERLARIS:');
+      int rank = 1;
+      for (final p in report.topProducts) {
+        sb.writeln(rightAlign(rank.toString() + '. ' + p.productName, p.quantity.toString() + ' pcs'));
+        sb.writeln(rightAlign('   Total', formatNumber(p.totalAmount)));
+        rank++;
+      }
+      sb.writeln('--------------------------------');
+    }
+    sb.writeln('Dicetak: ' + DateTime.now().toString().substring(0, 16));
+    return sb.toString();
+  }
+
   /// Generate teks polos struk (padanan generateRawText — untuk Copy & RawBT).
   String generateRawText(Transaction t, String size) {
     final maxChars = size == '80mm' ? 48 : 32;

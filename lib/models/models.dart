@@ -953,3 +953,80 @@ class BonCigaretteSummary {
         totalAmount: numFrom(json['total_amount']),
       );
 }
+
+/// Metrik penjualan per kategori produk.
+class CategorySalesMetric {
+  final String categoryName;
+  final int totalAmount;
+  final int totalQty;
+  final double percentage;
+
+  const CategorySalesMetric({
+    required this.categoryName,
+    required this.totalAmount,
+    required this.totalQty,
+    required this.percentage,
+  });
+}
+
+/// Metrik produk terlaris.
+class TopProductSalesMetric {
+  final String productName;
+  final int quantity;
+  final int totalAmount;
+
+  const TopProductSalesMetric({
+    required this.productName,
+    required this.quantity,
+    required this.totalAmount,
+  });
+}
+
+/// Data rekapitulasi laporan penjualan komprehensif.
+class SalesReportData {
+  final String dateFrom;
+  final String dateTo;
+  final int totalTransactions;
+  final int grossSales; // Omset kotor sebelum potongan promo
+  final int promoDiscounts; // Total potongan promo bundle
+  final int netSales; // grossSales - promoDiscounts
+  final int totalExpenses; // Beban kas warung
+  final int netProfit; // netSales - totalExpenses
+  final int cashTotal; // Pembayaran Tunai
+  final int nonCashTotal; // QRIS / Transfer
+  final int unpaidTotal; // Kasbon / Belum lunas
+  final List<CategorySalesMetric> categoryMetrics;
+  final List<TopProductSalesMetric> topProducts;
+
+  const SalesReportData({
+    required this.dateFrom,
+    required this.dateTo,
+    required this.totalTransactions,
+    required this.grossSales,
+    required this.promoDiscounts,
+    required this.netSales,
+    required this.totalExpenses,
+    required this.netProfit,
+    required this.cashTotal,
+    required this.nonCashTotal,
+    required this.unpaidTotal,
+    required this.categoryMetrics,
+    required this.topProducts,
+  });
+
+  static const empty = SalesReportData(
+    dateFrom: '',
+    dateTo: '',
+    totalTransactions: 0,
+    grossSales: 0,
+    promoDiscounts: 0,
+    netSales: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+    cashTotal: 0,
+    nonCashTotal: 0,
+    unpaidTotal: 0,
+    categoryMetrics: [],
+    topProducts: [],
+  );
+}

@@ -72,6 +72,10 @@ class RekapanWarungApp extends StatelessWidget {
           create: (_) =>
               BonDraftProvider(RepositoryFactory.transactionRepository()),
         ),
+        ChangeNotifierProvider(
+          create: (_) =>
+              SalesReportProvider(RepositoryFactory.salesReportRepository()),
+        ),
       ],
       child: MaterialApp(
         navigatorKey: Nav.navigatorKey,

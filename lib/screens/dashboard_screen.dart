@@ -13,6 +13,9 @@ import 'bon/bon_list_screen.dart';
 import 'customers/customer_form_screen.dart';
 import 'expenses/expense_list_screen.dart';
 import 'products/product_list_screen.dart';
+import '../core/storage/prefs.dart';
+import 'reports/sales_report_screen.dart';
+import 'settings/settings_screen.dart';
 
 /// Dashboard — meniru `pages/Dashboard.jsx` v2 (sky-blue, border-first).
 /// Sapaan → focal "Penjualan hari ini" → Aksi cepat → list transaksi terbaru.
@@ -24,12 +27,20 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  String _savedPrinter = '';
+
   @override
   void initState() {
     super.initState();
+    _checkPrinter();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<DashboardProvider>().load();
     });
+  }
+
+  Future<void> _checkPrinter() async {
+    final name = await Prefs.getPrinterName();
+    if (mounted) setState(() => _savedPrinter = name);
   }
 
   String _greeting() {
@@ -107,7 +118,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _todayLabel(),
               style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+                _checkPrinter();
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _savedPrinter.isNotEmpty ? AppColors.brand50 : AppColors.chipBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _savedPrinter.isNotEmpty ? AppColors.brand200 : AppColors.border,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.print_outlined,
+                      size: 14,
+                      color: _savedPrinter.isNotEmpty ? AppColors.brand700 : AppColors.textMuted,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _savedPrinter.isNotEmpty
+                          ? 'Printer: ' + _savedPrinter
+                          : 'Printer thermal belum diatur (ketuk untuk atur)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _savedPrinter.isNotEmpty ? AppColors.brand700 : AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
 
             if (dash.loading && dash.data == null)
               const LoadingState(text: 'Memuat dashboard...')
@@ -302,6 +354,12 @@ class _QuickActions extends StatelessWidget {
               label: 'Tambah Pelanggan',
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CustomerFormScreen()),
+              ),
+            ),
+            _ActionChip(
+              label: 'Laporan Penjualan',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SalesReportScreen()),
               ),
             ),
           ],

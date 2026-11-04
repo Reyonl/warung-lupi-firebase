@@ -23,4 +23,7 @@ class RepositoryFactory {
 
   static CigaretteReportRepository cigaretteReportRepository() =>
       FirestoreCigaretteReportRepository();
+
+  static SalesReportRepository salesReportRepository() =>
+      FirestoreSalesReportRepository();
 }

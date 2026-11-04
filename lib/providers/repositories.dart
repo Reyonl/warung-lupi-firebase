@@ -315,3 +315,13 @@ class DashboardData {
     required this.recent,
   });
 }
+
+
+/// Kontrak repository laporan penjualan detail.
+class SalesReportRepository {
+  Future<SalesReportData> report({
+    required String dateFrom,
+    required String dateTo,
+  }) async =>
+      SalesReportData.empty;
+}
